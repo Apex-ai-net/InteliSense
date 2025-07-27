@@ -12,14 +12,44 @@ class JobMonitor {
       'Costa Mesa, CA',
       'Santa Ana, CA',
       'Anaheim, CA',
-      'Orange, CA'
+      'Orange, CA',
+      'Tustin, CA',
+      'Fullerton, CA',
+      'Garden Grove, CA',
+      'Huntington Beach, CA',
+      'Fountain Valley, CA',
+      'Westminster, CA',
+      'Cypress, CA',
+      'Los Alamitos, CA',
+      'Seal Beach, CA',
+      'La Habra, CA'
     ];
-    this.minJobs = 50; // Minimum jobs threshold
+    this.minJobs = 25; // Lowered for more leads
     
+    // Target companies for Voit Commercial Real Estate
     this.targetCompanies = [
-      'Apple', 'Amazon', 'Google', 'Meta', 'Tesla', 'Rivian', 'SpaceX',
-      'Microsoft', 'Netflix', 'Uber', 'Lyft', 'Airbnb', 'Adobe',
-      'Salesforce', 'Oracle', 'NVIDIA', 'Intel', 'AMD', 'Qualcomm'
+      // Tech Companies
+      'Apple', 'Amazon', 'Google', 'Meta', 'Microsoft', 'Netflix', 'Adobe', 'Salesforce', 'Oracle',
+      'NVIDIA', 'Intel', 'AMD', 'Qualcomm', 'Broadcom', 'Western Digital', 'Seagate',
+      // Biotech/Pharma
+      'Irvine Company', 'Allergan', 'Edwards Lifesciences', 'Masimo', 'Alcon', 'Bausch Health',
+      // Manufacturing/Industrial
+      'Boeing', 'Northrop Grumman', 'Raytheon', 'Lockheed Martin', 'General Dynamics',
+      // Automotive
+      'Tesla', 'Rivian', 'Lucid Motors', 'Kia', 'Hyundai', 'Toyota', 'Honda',
+      // Logistics/Distribution
+      'Amazon', 'UPS', 'FedEx', 'DHL', 'Walmart', 'Target', 'Costco',
+      // Healthcare
+      'Kaiser Permanente', 'UCI Health', 'Hoag Hospital', 'Providence Health',
+      // Financial Services
+      'Pacific Life', 'First American', 'Experian', 'CoreLogic', 'Allstate'
+    ];
+    
+    // Job categories relevant to commercial real estate
+    this.relevantJobCategories = [
+      'facilities', 'real estate', 'operations', 'manufacturing', 'engineering',
+      'logistics', 'distribution', 'warehouse', 'office', 'management',
+      'executive', 'director', 'manager', 'coordinator', 'specialist'
     ];
   }
 

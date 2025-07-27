@@ -11,34 +11,56 @@ class AIPredictor {
     });
     
     this.emailSender = new EmailSender();
-    this.confidenceThreshold = 80;
+    this.confidenceThreshold = 75; // Lowered for more leads
     
+    // Target companies for Voit Commercial Real Estate
     this.targetCompanies = [
-      'Apple', 'Amazon', 'Google', 'Meta', 'Tesla', 'Rivian', 'SpaceX',
-      'Microsoft', 'Netflix', 'Uber', 'Lyft', 'Airbnb', 'Adobe',
-      'Salesforce', 'Oracle', 'NVIDIA', 'Intel', 'AMD', 'Qualcomm'
+      // Tech Companies
+      'Apple', 'Amazon', 'Google', 'Meta', 'Microsoft', 'Netflix', 'Adobe', 'Salesforce', 'Oracle',
+      'NVIDIA', 'Intel', 'AMD', 'Qualcomm', 'Broadcom', 'Western Digital', 'Seagate',
+      // Biotech/Pharma
+      'Irvine Company', 'Allergan', 'Edwards Lifesciences', 'Masimo', 'Alcon', 'Bausch Health',
+      // Manufacturing/Industrial
+      'Boeing', 'Northrop Grumman', 'Raytheon', 'Lockheed Martin', 'General Dynamics',
+      // Automotive
+      'Tesla', 'Rivian', 'Lucid Motors', 'Kia', 'Hyundai', 'Toyota', 'Honda',
+      // Logistics/Distribution
+      'Amazon', 'UPS', 'FedEx', 'DHL', 'Walmart', 'Target', 'Costco',
+      // Healthcare
+      'Kaiser Permanente', 'UCI Health', 'Hoag Hospital', 'Providence Health',
+      // Financial Services
+      'Pacific Life', 'First American', 'Experian', 'CoreLogic', 'Allstate'
     ];
     
     this.targetCities = [
-      'Irvine', 'Newport Beach', 'Costa Mesa', 'Santa Ana', 'Anaheim', 'Orange'
+      'Irvine', 'Newport Beach', 'Costa Mesa', 'Santa Ana', 'Anaheim', 'Orange',
+      'Tustin', 'Fullerton', 'Garden Grove', 'Huntington Beach', 'Fountain Valley',
+      'Westminster', 'Cypress', 'Los Alamitos', 'Seal Beach', 'La Habra'
     ];
     
-    // Corporate entity mappings for permit applicant analysis
+    // Professional corporate entity mappings for Voit
     this.corporateEntityMap = {
-      'Apple': ['Apple Inc', 'Apple Computer', 'Apple Operations', 'Apple Real Estate', 'Apple Facilities'],
-      'Amazon': ['Amazon.com Inc', 'Amazon Web Services', 'Amazon Development', 'Amazon Logistics', 'Amazon Fulfillment'],
-      'Google': ['Google LLC', 'Alphabet Inc', 'Google Real Estate', 'Google Facilities', 'Alphabet Real Estate'],
-      'Meta': ['Meta Platforms', 'Facebook Inc', 'Meta Reality Labs', 'Meta Facilities', 'Facebook Real Estate'],
-      'Tesla': ['Tesla Inc', 'Tesla Motors', 'Tesla Manufacturing', 'Tesla Energy', 'Tesla Facilities'],
-      'Microsoft': ['Microsoft Corporation', 'Microsoft Real Estate', 'Microsoft Development', 'Microsoft Facilities'],
-      'Netflix': ['Netflix Inc', 'Netflix Studios', 'Netflix Real Estate', 'Netflix Facilities'],
-      'SpaceX': ['Space Exploration Technologies', 'SpaceX', 'Space X Corp', 'SpaceX Facilities'],
-      'NVIDIA': ['NVIDIA Corporation', 'NVIDIA Corp', 'NVIDIA Real Estate', 'NVIDIA Facilities'],
-      'Intel': ['Intel Corporation', 'Intel Corp', 'Intel Real Estate', 'Intel Facilities'],
-      'Oracle': ['Oracle Corporation', 'Oracle Corp', 'Oracle Real Estate', 'Oracle America'],
-      'Adobe': ['Adobe Inc', 'Adobe Systems', 'Adobe Real Estate', 'Adobe Facilities'],
-      'Salesforce': ['Salesforce Inc', 'Salesforce.com', 'Salesforce Real Estate', 'Salesforce Facilities']
+      'Apple': ['Apple Inc', 'Apple Computer', 'Apple Operations', 'Apple Real Estate', 'Apple Facilities', 'Apple Development'],
+      'Amazon': ['Amazon.com Inc', 'Amazon Development Corp', 'Amazon Real Estate', 'Amazon Operations', 'Amazon Web Services'],
+      'Google': ['Google LLC', 'Alphabet Inc', 'Google Real Estate', 'Google Development', 'Google Operations'],
+      'Meta': ['Meta Platforms Inc', 'Facebook Inc', 'Meta Real Estate', 'Meta Development'],
+      'Microsoft': ['Microsoft Corporation', 'Microsoft Real Estate', 'Microsoft Development', 'Microsoft Operations'],
+      'Tesla': ['Tesla Inc', 'Tesla Motors', 'Tesla Real Estate', 'Tesla Development', 'Tesla Manufacturing'],
+      'Rivian': ['Rivian Automotive', 'Rivian Real Estate', 'Rivian Development'],
+      'Irvine Company': ['Irvine Company LLC', 'Irvine Company Real Estate', 'Irvine Company Development'],
+      'Allergan': ['Allergan Inc', 'Allergan Real Estate', 'Allergan Development'],
+      'Edwards Lifesciences': ['Edwards Lifesciences Corp', 'Edwards Real Estate', 'Edwards Development'],
+      'Boeing': ['Boeing Company', 'Boeing Real Estate', 'Boeing Development', 'Boeing Operations'],
+      'Northrop Grumman': ['Northrop Grumman Corp', 'Northrop Real Estate', 'Northrop Development'],
+      'Kaiser Permanente': ['Kaiser Foundation', 'Kaiser Real Estate', 'Kaiser Development'],
+      'Pacific Life': ['Pacific Life Insurance', 'Pacific Life Real Estate', 'Pacific Life Development']
     };
+    
+    // Property types for Voit Commercial Real Estate
+    this.propertyTypes = [
+      'office', 'industrial', 'warehouse', 'distribution', 'manufacturing', 'data_center',
+      'research_lab', 'medical_office', 'retail', 'mixed_use', 'flex_space', 'logistics'
+    ];
   }
 
   async analyzeAndPredict() {
@@ -176,7 +198,7 @@ class AIPredictor {
       date: j.date_posted
     }));
 
-    return `Analyze these Orange County business expansion signals and predict corporate facility expansions:
+    return `Analyze these Orange County business expansion signals for Voit Commercial Real Estate lead generation:
 
 Building Permits: ${JSON.stringify(permitsData, null, 2)}
 
@@ -185,59 +207,54 @@ Job Postings: ${JSON.stringify(jobsData, null, 2)}
 Target Companies: ${this.targetCompanies.join(', ')}
 Target Cities: ${this.targetCities.join(', ')}
 
+VOIT COMMERCIAL REAL ESTATE ANALYSIS REQUIREMENTS:
+
 CORPORATE ENTITY ANALYSIS:
-Carefully analyze permit applicants and correlate them with target companies. Look for:
-- Direct company names: "Apple Inc", "Amazon.com Inc", "Google LLC"
-- Subsidiary entities: "Apple Operations LLC", "Amazon Development Corp", "Google Real Estate"
-- Real estate entities: "Microsoft Real Estate", "Tesla Facilities LLC"
-- Regional entities: "Apple Operations California", "Amazon West Coast"
+- Identify real corporate entities from permit applicants
+- Cross-reference with target companies and their subsidiaries
+- Look for direct company names: "Apple Inc", "Amazon.com Inc", "Google LLC"
+- Identify subsidiary entities: "Apple Operations LLC", "Amazon Development Corp", "Google Real Estate"
+- Verify real estate entities: "Microsoft Real Estate", "Tesla Facilities LLC"
+- Check regional entities: "Apple Operations California", "Amazon West Coast"
 
-Corporate Entity Reference:
-${Object.entries(this.corporateEntityMap).map(([company, entities]) => 
-  `${company}: ${entities.join(', ')}`
-).join('\n')}
+PROPERTY TYPE CLASSIFICATION:
+- Office: Corporate headquarters, regional offices, satellite offices
+- Industrial: Manufacturing facilities, assembly plants, R&D centers
+- Warehouse: Distribution centers, fulfillment centers, storage facilities
+- Data Center: Server farms, cloud infrastructure, tech facilities
+- Research Lab: Biotech labs, pharmaceutical research, medical facilities
+- Medical Office: Healthcare facilities, medical centers, clinics
+- Mixed Use: Office/retail combinations, corporate campuses
 
-EVIDENCE REQUIREMENTS - Base predictions on specific, actionable evidence:
-1. BUILDING PERMITS: Analyze actual permit applicant names and correlate with target companies
-2. JOB POSTINGS: Cross-reference job locations with permit addresses
-3. MASS HIRING: 50+ jobs in same location/department within 30 days
-4. CORPORATE CORRELATION: Match permit applicants to known corporate entities
-5. LOCATION INTELLIGENCE: Verify addresses and proximity between permits and job postings
+LEAD GENERATION CRITERIA:
+- Minimum permit value: $1M+ for office, $2M+ for industrial
+- Job postings: 50+ positions in same location/company
+- Timeline: 30-90 days for immediate opportunities
+- Location: Orange County cities with strong commercial real estate market
+- Company size: Fortune 500 or major regional employers
 
-ANALYSIS INSTRUCTIONS:
-1. For each permit applicant, determine if it matches any target company or subsidiary
-2. If "Tech Company LLC" or similar generic names appear, analyze the address and description to infer the actual company
-3. Cross-reference permit locations with job posting locations
-4. Only make predictions for confirmed corporate matches - never use generic placeholder names
-5. If no clear corporate match exists, do not create a prediction
+EVIDENCE REQUIREMENTS:
+1. PERMITS: Specific corporate entity, property type, value, location
+2. JOBS: Company name, position count, location, timeline
+3. SEC FILINGS: Corporate expansion announcements, facility investments
+4. EXECUTIVE MOVEMENTS: Leadership changes, regional office announcements
+5. REAL ESTATE ACTIVITY: Leasing announcements, property acquisitions
 
-Return JSON array of predictions with VERIFIED corporate connections:
-[
-  {
-    "company_name": "Apple",
-    "confidence_score": 85,
-    "prediction_type": "manufacturing_facility",
-    "location": "Costa Mesa Industrial District",
-    "timeline_days": 60,
-    "evidence": [
-      "Building permit #2024-0156: $15.2M manufacturing facility filed by Apple Operations LLC",
-      "Permit address: 1234 Industrial Blvd matches 85 Manufacturing Engineer job postings for Costa Mesa",
-      "62 Production Supervisor positions posted within 14 days of permit filing",
-      "Corporate entity verification: Apple Operations LLC confirmed subsidiary of Apple Inc"
-    ],
-    "action_recommendation": "Contact Apple facilities team within 48 hours - verified $15.2M facility expansion"
-  }
-]
+ONLY generate predictions for:
+- Verified corporate entities (not generic "Tech Company LLC")
+- High-value permits ($1M+ office, $2M+ industrial)
+- Companies with significant job postings (50+ positions)
+- Orange County locations with strong commercial real estate demand
+- Property types suitable for Voit's expertise
 
-CRITICAL REQUIREMENTS:
-- Only include predictions with verified corporate entity matches
-- Never use generic names like "Tech Company LLC" - identify the actual company
-- Evidence must include specific permit applicant analysis
-- Cross-reference permit addresses with job posting locations
-- Base confidence on strength of corporate entity correlation
-- Include actionable recommendations with verified company contacts
-- Focus on Orange County cities: ${this.targetCities.join(', ')}
-- Minimum confidence score: 70% (only for verified corporate matches)`;
+Format predictions as:
+COMPANY: [Real corporate entity name]
+CONFIDENCE: [75-95% based on evidence strength]
+PROPERTY TYPE: [office/industrial/warehouse/data_center/research_lab/medical_office]
+LOCATION: [Specific Orange County address or area]
+TIMELINE: [30-90 days]
+EVIDENCE: [Specific permit details, job counts, corporate entity verification]
+ACTION: [Voit-specific recommendation for lead generation]`;
   }
 
   async callOpenAI(prompt) {
