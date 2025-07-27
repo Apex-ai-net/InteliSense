@@ -106,61 +106,120 @@ class IrvinePermitsScraper {
   async scrapePermitsFromPage(page) {
     try {
       // Wait for page to load
-      await page.waitForTimeout(3000);
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
       // Try to find and click on "Building Permits" or similar link
       const buildingLink = await page.$('a[href*="building"], a[href*="permit"], .building-permits, .permits');
       if (buildingLink) {
         await buildingLink.click();
-        await page.waitForTimeout(2000);
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
       
-      // Look for search functionality
+      // Look for search functionality or recent permits
       const searchButton = await page.$('input[type="submit"][value*="Search"], button[type="submit"], .search-button');
       if (searchButton) {
         await searchButton.click();
-        await page.waitForTimeout(3000);
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
       
-      // Extract permit data from the page
-      // This is a generic scraper - needs to be customized based on actual site structure
+      // Try to find permit records table or list
+      const permitTable = await page.$('table, .records-table, .permits-table, .data-table');
+      if (!permitTable) {
+        console.log('⚠️  No permit table found, trying alternative selectors...');
+      }
+      
+      // Extract permit data from the page with improved parsing
       const permits = await page.evaluate(() => {
-        const permitElements = document.querySelectorAll('tr, .permit-row, .record-row');
+        // Try multiple selectors for permit records
+        const selectors = [
+          'tr[data-permit]',
+          '.permit-row',
+          '.record-row', 
+          'tr:has(td)',
+          '.permit-item',
+          '.record-item'
+        ];
+        
+        let permitElements = [];
+        for (const selector of selectors) {
+          const elements = document.querySelectorAll(selector);
+          if (elements.length > 0) {
+            permitElements = Array.from(elements);
+            break;
+          }
+        }
+        
         const permits = [];
         
         permitElements.forEach((element, index) => {
           const text = element.innerText || element.textContent || '';
           
-          // Look for permit patterns
-          const valueMatch = text.match(/\$?([\d,]+(?:\.\d{2})?)/);
-          const addressMatch = text.match(/(\d+\s+[A-Za-z\s]+(?:St|Ave|Blvd|Dr|Rd|Way|Ct|Ln))/i);
-          
-          // Extract applicant name from permit text
-          let applicant = null;
-          const applicantPatterns = [
-            /applicant[:\s]+([A-Za-z\s,\.]+?)(?:\s|$)/i,
-            /owner[:\s]+([A-Za-z\s,\.]+?)(?:\s|$)/i,
-            /company[:\s]+([A-Za-z\s,\.]+?)(?:\s|$)/i,
-            /contractor[:\s]+([A-Za-z\s,\.]+?)(?:\s|$)/i,
-            /([A-Za-z\s]+(?:LLC|Inc|Corp|Corporation|Company|Co\.|Ltd))/i
+          // Enhanced permit value extraction
+          const valuePatterns = [
+            /\$?([\d,]+(?:\.\d{2})?)/g,
+            /value[:\s]*\$?([\d,]+(?:\.\d{2})?)/i,
+            /amount[:\s]*\$?([\d,]+(?:\.\d{2})?)/i
           ];
           
-          for (const pattern of applicantPatterns) {
+          let value = null;
+          for (const pattern of valuePatterns) {
+            const matches = text.match(pattern);
+            if (matches && matches.length > 0) {
+              // Get the largest value found
+              const values = matches.map(m => parseFloat(m.replace(/[$,]/g, ''))).filter(v => !isNaN(v));
+              if (values.length > 0) {
+                value = Math.max(...values);
+                break;
+              }
+            }
+          }
+          
+          // Enhanced address extraction
+          const addressPatterns = [
+            /(\d+\s+[A-Za-z\s]+(?:St|Ave|Blvd|Dr|Rd|Way|Ct|Ln))/i,
+            /address[:\s]*([A-Za-z\s\d,]+(?:St|Ave|Blvd|Dr|Rd|Way|Ct|Ln))/i,
+            /location[:\s]*([A-Za-z\s\d,]+(?:St|Ave|Blvd|Dr|Rd|Way|Ct|Ln))/i
+          ];
+          
+          let address = null;
+          for (const pattern of addressPatterns) {
             const match = text.match(pattern);
             if (match) {
-              applicant = match[1].trim();
+              address = match[1].trim();
               break;
             }
           }
           
-          if (valueMatch || addressMatch) {
+          // Enhanced applicant name extraction
+          const applicantPatterns = [
+            /applicant[:\s]+([A-Za-z\s,\.&]+?)(?:\s|$)/i,
+            /owner[:\s]+([A-Za-z\s,\.&]+?)(?:\s|$)/i,
+            /company[:\s]+([A-Za-z\s,\.&]+?)(?:\s|$)/i,
+            /contractor[:\s]+([A-Za-z\s,\.&]+?)(?:\s|$)/i,
+            /([A-Za-z\s,\.&]+(?:LLC|Inc|Corp|Corporation|Company|Co\.|Ltd|LP|LLP))/i,
+            /([A-Za-z\s,\.&]+(?:Real Estate|Development|Properties|Investments))/i
+          ];
+          
+          let applicant = null;
+          for (const pattern of applicantPatterns) {
+            const match = text.match(pattern);
+            if (match) {
+              applicant = match[1].trim();
+              // Clean up the applicant name
+              applicant = applicant.replace(/^[:\s]+/, '').replace(/[:\s]+$/, '');
+              break;
+            }
+          }
+          
+          // Only create permit if we have meaningful data
+          if (value && value >= 1000000) { // Only high-value permits
             const permit = {
               id: `permit_${Date.now()}_${index}`,
-              value: valueMatch ? parseFloat(valueMatch[1].replace(/,/g, '')) : null,
-              address: addressMatch ? addressMatch[1].trim() : text.substring(0, 100),
+              value: value,
+              address: address || 'Address not specified',
               description: text.substring(0, 200),
-              applicant: applicant || 'Unknown Applicant', // Extract real applicant or mark as unknown
-              date_filed: new Date() // Use current date if not available
+              applicant: applicant || 'Applicant not specified',
+              date_filed: new Date()
             };
             
             permits.push(permit);
@@ -175,15 +234,8 @@ class IrvinePermitsScraper {
     } catch (error) {
       console.error('Error parsing permits page:', error);
       
-      // Fallback: Create sample permit for testing
-      return [{
-        id: `test_permit_${Date.now()}`,
-        value: 2500000,
-        address: '123 Innovation Drive, Irvine, CA',
-        description: 'New commercial facility construction',
-        applicant: 'Tech Company LLC',
-        date_filed: new Date()
-      }];
+      // Return empty array instead of test data
+      return [];
     }
   }
 }

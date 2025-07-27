@@ -107,10 +107,10 @@ class Scheduler {
     try {
       this.isRunning.analysis = true;
       
-      const predictions = await this.aiPredictor.analyzeExpansionSignals();
+      const predictions = await this.aiPredictor.analyzeAndPredict();
       
       const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-      console.log(`✅ Analysis complete in ${duration}s: ${predictions.length} predictions`);
+      console.log(`✅ Analysis complete in ${duration}s: ${predictions.count} predictions`);
       
       const highConfidence = predictions.filter(p => p.confidence_score >= 80);
       if (highConfidence.length > 0) {
@@ -234,7 +234,15 @@ class Scheduler {
   }
 
   async triggerAnalysis() {
-    return await this.aiPredictor.analyzeExpansionSignals();
+    try {
+      console.log('🧠 Triggering AI analysis...');
+      const predictions = await this.aiPredictor.analyzeAndPredict();
+      console.log(`✅ Analysis complete: ${predictions.count} predictions generated`);
+      return predictions;
+    } catch (error) {
+      console.error('❌ Error in analysis:', error);
+      throw error;
+    }
   }
 }
 

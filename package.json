@@ -15,7 +15,7 @@
     "setup:production": "node production-setup.js",
     "start:production": "NODE_ENV=production node server.js",
     "scrape": "node -e \"const s = require('./src/scrapers/irvine-permits'); new s().scrape().then(console.log).catch(console.error)\"",
-    "analyze": "node -e \"const a = require('./src/analysis/ai-predictor'); new a().analyzeExpansionSignals().then(console.log).catch(console.error)\""
+    "analyze": "node -e \"const a = require('./src/analysis/ai-predictor'); new a().analyzeAndPredict().then(console.log).catch(console.error)\""
   },
   "keywords": [
     "real-estate",

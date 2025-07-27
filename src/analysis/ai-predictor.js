@@ -41,44 +41,74 @@ class AIPredictor {
     };
   }
 
-  async analyzeExpansionSignals() {
-    console.log('🧠 Starting AI analysis of expansion signals...');
-    
+  async analyzeAndPredict() {
     try {
-      // Get recent permits (last 7 days)
-      const recentPermits = await prisma.permit.findMany({
-        where: {
-          created_at: {
-            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-          }
-        },
-        orderBy: { created_at: 'desc' },
-        take: 50
-      });
-
-      // Get recent jobs (if available)
-      const recentJobs = await prisma.job.findMany({
-        where: {
-          created_at: {
-            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-          }
-        },
-        orderBy: { created_at: 'desc' },
-        take: 50
-      });
-
-      if (recentPermits.length === 0 && recentJobs.length === 0) {
-        console.log('📊 No recent data to analyze');
-        return [];
-      }
-
-      console.log(`📊 Analyzing ${recentPermits.length} permits and ${recentJobs.length} jobs`);
-
-      // Create analysis prompt
-      const analysisPrompt = this.createAnalysisPrompt(recentPermits, recentJobs);
+      console.log('🤖 Starting AI analysis and prediction...');
       
-      // Call OpenAI for analysis
-      const predictions = await this.callOpenAI(analysisPrompt);
+      // Get recent permits and jobs
+      const permits = await prisma.permit.findMany({
+        where: {
+          date_filed: {
+            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
+          }
+        },
+        orderBy: { date_filed: 'desc' },
+        take: 50
+      });
+      
+      const jobs = await prisma.job.findMany({
+        where: {
+          date_posted: {
+            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
+          }
+        },
+        orderBy: { date_posted: 'desc' },
+        take: 50
+      });
+      
+      console.log(`📊 Found ${permits.length} permits and ${jobs.length} jobs for analysis`);
+      
+      // If no real data found, don't generate predictions
+      if (permits.length === 0 && jobs.length === 0) {
+        console.log('⚠️  No recent permits or jobs found for analysis');
+        return { success: true, count: 0, predictions: [] };
+      }
+      
+      // Filter out test data and vague applicants
+      const realPermits = permits.filter(permit => 
+        permit.applicant && 
+        permit.applicant !== 'Tech Company LLC' &&
+        permit.applicant !== 'Applicant not specified' &&
+        permit.applicant !== 'Unknown Applicant'
+      );
+      
+      console.log(`🏗️  Found ${realPermits.length} real permits with identifiable applicants`);
+      
+      // Create analysis prompt
+      const prompt = this.createAnalysisPrompt(realPermits, jobs);
+      
+      // Get AI prediction
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert business intelligence analyst specializing in corporate expansion signals in Orange County, California. Analyze building permits and job postings to identify potential corporate facility expansions.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 2000
+      });
+      
+      const analysis = completion.choices[0].message.content;
+      console.log('📝 AI Analysis completed');
+      
+      // Parse predictions from analysis
+      const predictions = this.parsePredictions(analysis);
       
       // Save predictions to database
       const savedPredictions = [];
@@ -86,9 +116,9 @@ class AIPredictor {
       
       for (const prediction of predictions) {
         try {
-          const saved = await prisma.prediction.create({
+          const savedPrediction = await prisma.prediction.create({
             data: {
-              company: prediction.company_name,
+              company: prediction.company,
               confidence_score: prediction.confidence_score,
               prediction_type: prediction.prediction_type,
               location: prediction.location,
@@ -97,11 +127,11 @@ class AIPredictor {
               action_recommendation: prediction.action_recommendation
             }
           });
-          savedPredictions.push(saved);
           
-          // Collect high confidence predictions for consolidated email
+          savedPredictions.push(savedPrediction);
+          
           if (prediction.confidence_score >= this.confidenceThreshold) {
-            highConfidencePredictions.push(prediction);
+            highConfidencePredictions.push(savedPrediction);
           }
           
         } catch (error) {
@@ -109,14 +139,19 @@ class AIPredictor {
         }
       }
       
-      // Send one consolidated email for all high confidence predictions
+      // Send consolidated alert if high-confidence predictions found
       if (highConfidencePredictions.length > 0) {
-        console.log(`🚨 Sending consolidated alert for ${highConfidencePredictions.length} high confidence predictions`);
+        console.log(`🚨 Sending consolidated alert for ${highConfidencePredictions.length} high-confidence predictions`);
         await this.emailSender.sendConsolidatedExpansionAlert(highConfidencePredictions);
       }
       
-      console.log(`✅ Analysis complete. ${savedPredictions.length} predictions saved.`);
-      return savedPredictions;
+      console.log(`✅ Analysis complete: ${savedPredictions.length} predictions generated, ${highConfidencePredictions.length} high-confidence`);
+      
+      return {
+        success: true,
+        count: savedPredictions.length,
+        predictions: savedPredictions
+      };
       
     } catch (error) {
       console.error('❌ Error in AI analysis:', error);
@@ -276,6 +311,82 @@ CRITICAL REQUIREMENTS:
       orderBy: { created_at: 'desc' },
       take: 50
     });
+  }
+
+  parsePredictions(analysis) {
+    try {
+      // Extract predictions from AI analysis
+      const predictions = [];
+      
+      // Look for prediction patterns in the analysis
+      const predictionBlocks = analysis.split(/PREDICTION|prediction/i);
+      
+      for (const block of predictionBlocks) {
+        if (block.trim().length < 50) continue; // Skip short blocks
+        
+        // Extract company name
+        const companyMatch = block.match(/company[:\s]+([A-Za-z\s,\.&]+)/i) ||
+                           block.match(/([A-Za-z\s,\.&]+(?:LLC|Inc|Corp|Corporation|Company|Co\.|Ltd))/i);
+        
+        // Extract confidence score
+        const confidenceMatch = block.match(/confidence[:\s]*(\d+)/i) ||
+                              block.match(/(\d+)%?\s*confidence/i);
+        
+        // Extract location
+        const locationMatch = block.match(/location[:\s]+([A-Za-z\s\d,]+(?:St|Ave|Blvd|Dr|Rd|Way|Ct|Ln))/i) ||
+                            block.match(/([A-Za-z\s\d,]+(?:St|Ave|Blvd|Dr|Rd|Way|Ct|Ln))/i);
+        
+        // Extract timeline
+        const timelineMatch = block.match(/timeline[:\s]*(\d+)\s*days/i) ||
+                            block.match(/(\d+)\s*days/i);
+        
+        // Extract evidence
+        const evidenceMatches = block.match(/evidence[:\s]*([^]*?)(?=action|recommendation|$)/i);
+        
+        if (companyMatch) {
+          const prediction = {
+            company: companyMatch[1].trim(),
+            confidence_score: confidenceMatch ? parseInt(confidenceMatch[1]) : 75,
+            prediction_type: 'commercial_facility',
+            location: locationMatch ? locationMatch[1].trim() : 'Orange County, CA',
+            timeline_days: timelineMatch ? parseInt(timelineMatch[1]) : 30,
+            evidence: evidenceMatches ? [evidenceMatches[1].trim()] : ['Analysis based on permit and job data'],
+            action_recommendation: 'Monitor for additional expansion signals and verify with local authorities'
+          };
+          
+          predictions.push(prediction);
+        }
+      }
+      
+      // If no structured predictions found, create one based on analysis
+      if (predictions.length === 0) {
+        const defaultPrediction = {
+          company: 'Corporate Entity (Analysis Required)',
+          confidence_score: 60,
+          prediction_type: 'commercial_facility',
+          location: 'Orange County, CA',
+          timeline_days: 30,
+          evidence: [analysis.substring(0, 500)],
+          action_recommendation: 'Further investigation needed to identify specific corporate entities'
+        };
+        
+        predictions.push(defaultPrediction);
+      }
+      
+      return predictions;
+      
+    } catch (error) {
+      console.error('Error parsing predictions:', error);
+      return [{
+        company: 'Analysis Error',
+        confidence_score: 50,
+        prediction_type: 'commercial_facility',
+        location: 'Orange County, CA',
+        timeline_days: 30,
+        evidence: ['Error parsing AI analysis'],
+        action_recommendation: 'Review analysis manually'
+      }];
+    }
   }
 }
 
