@@ -6,7 +6,14 @@ const prisma = new PrismaClient();
 class JobMonitor {
   constructor() {
     this.baseUrl = 'https://www.indeed.com/jobs';
-    this.location = 'Orange County, CA';
+    this.locations = [
+      'Irvine, CA',
+      'Newport Beach, CA', 
+      'Costa Mesa, CA',
+      'Santa Ana, CA',
+      'Anaheim, CA',
+      'Orange, CA'
+    ];
     this.minJobs = 50; // Minimum jobs threshold
     
     this.targetCompanies = [
@@ -41,11 +48,15 @@ class JobMonitor {
       for (const company of this.targetCompanies) {
         try {
           console.log(`🔍 Searching jobs for ${company}...`);
-          const jobs = await this.searchCompanyJobs(browser, company);
-          allJobs.push(...jobs);
           
-          // Add delay between searches to be respectful
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // Search across all Orange County cities for this company
+          for (const location of this.locations) {
+            const jobs = await this.searchCompanyJobs(browser, company, location);
+            allJobs.push(...jobs);
+            
+            // Add delay between searches to be respectful
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
           
         } catch (error) {
           console.error(`❌ Error searching jobs for ${company}:`, error);
@@ -117,22 +128,22 @@ class JobMonitor {
     }
   }
 
-  async searchCompanyJobs(browser, company) {
+  async searchCompanyJobs(browser, company, location) {
     const page = await browser.newPage();
     
     try {
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
       
       // Build search URL
-      const searchUrl = `${this.baseUrl}?q=${encodeURIComponent(company)}&l=${encodeURIComponent(this.location)}`;
+      const searchUrl = `${this.baseUrl}?q=${encodeURIComponent(company)}&l=${encodeURIComponent(location)}`;
       
       await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
       
       // Wait for job results to load
-      await page.waitForTimeout(3000);
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
       // Extract job data
-      const jobs = await page.evaluate((companyName) => {
+      const jobs = await page.evaluate((companyName, jobLocation) => {
         const jobElements = document.querySelectorAll('[data-jk], .job_seen_beacon, .jobsearch-SerpJobCard');
         const jobs = [];
         
@@ -144,7 +155,7 @@ class JobMonitor {
             
             const title = titleElement ? titleElement.textContent.trim() : 'Unknown Title';
             const company = companyElement ? companyElement.textContent.trim() : companyName;
-            const location = locationElement ? locationElement.textContent.trim() : 'Orange County, CA';
+            const location = locationElement ? locationElement.textContent.trim() : jobLocation;
             
             // Extract job ID
             const jobId = element.getAttribute('data-jk') || `job_${Date.now()}_${index}`;
@@ -165,7 +176,7 @@ class JobMonitor {
         });
         
         return jobs;
-      }, company);
+      }, company, location);
       
       // Aggregate similar jobs
       const aggregatedJobs = this.aggregateJobs(jobs, company);

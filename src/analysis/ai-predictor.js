@@ -18,6 +18,10 @@ class AIPredictor {
       'Microsoft', 'Netflix', 'Uber', 'Lyft', 'Airbnb', 'Adobe',
       'Salesforce', 'Oracle', 'NVIDIA', 'Intel', 'AMD', 'Qualcomm'
     ];
+    
+    this.targetCities = [
+      'Irvine', 'Newport Beach', 'Costa Mesa', 'Santa Ana', 'Anaheim', 'Orange'
+    ];
   }
 
   async analyzeExpansionSignals() {
@@ -61,6 +65,8 @@ class AIPredictor {
       
       // Save predictions to database
       const savedPredictions = [];
+      const highConfidencePredictions = [];
+      
       for (const prediction of predictions) {
         try {
           const saved = await prisma.prediction.create({
@@ -76,15 +82,20 @@ class AIPredictor {
           });
           savedPredictions.push(saved);
           
-          // Send alert if confidence is high enough
+          // Collect high confidence predictions for consolidated email
           if (prediction.confidence_score >= this.confidenceThreshold) {
-            console.log(`🚨 High confidence prediction: ${prediction.company_name} (${prediction.confidence_score}%)`);
-            await this.emailSender.sendExpansionAlert(prediction);
+            highConfidencePredictions.push(prediction);
           }
           
         } catch (error) {
           console.error('Error saving prediction:', error);
         }
+      }
+      
+      // Send one consolidated email for all high confidence predictions
+      if (highConfidencePredictions.length > 0) {
+        console.log(`🚨 Sending consolidated alert for ${highConfidencePredictions.length} high confidence predictions`);
+        await this.emailSender.sendConsolidatedExpansionAlert(highConfidencePredictions);
       }
       
       console.log(`✅ Analysis complete. ${savedPredictions.length} predictions saved.`);
@@ -113,41 +124,55 @@ class AIPredictor {
       date: j.date_posted
     }));
 
-    return `Analyze these Orange County signals and predict company expansions:
+    return `Analyze these Orange County business expansion signals and predict corporate facility expansions:
 
-Building permits: ${JSON.stringify(permitsData, null, 2)}
+Building Permits: ${JSON.stringify(permitsData, null, 2)}
 
-Job postings: ${JSON.stringify(jobsData, null, 2)}
+Job Postings: ${JSON.stringify(jobsData, null, 2)}
 
-Focus on these target companies: ${this.targetCompanies.join(', ')}
+Target Companies: ${this.targetCompanies.join(', ')}
+Target Cities: ${this.targetCities.join(', ')}
 
-Look for patterns indicating:
-1. New facility construction (permits >$1M)
-2. Mass hiring (50+ jobs in specific locations)
-3. Infrastructure development
-4. Manufacturing/warehouse expansion
-5. R&D facility development
+EVIDENCE REQUIREMENTS - Base predictions on specific, actionable evidence:
+1. BUILDING PERMITS: Specific permit values, addresses, descriptions, applicant names
+2. JOB POSTINGS: Exact job counts, specific titles, locations, hiring patterns
+3. MASS HIRING: 50+ jobs in same location/department within 30 days
+4. SEC FILINGS: Public disclosures about facilities, acquisitions, expansions
+5. EXECUTIVE MOVEMENTS: Key hires in operations, real estate, facilities management
 
-Return JSON array of predictions:
+ANALYSIS PATTERNS:
+- New facility construction (permits >$1M with commercial/industrial zoning)
+- Mass hiring campaigns (50+ jobs posted in specific Orange County cities)
+- Infrastructure development (utilities, telecommunications, logistics)
+- Manufacturing/warehouse expansion (industrial permits + logistics jobs)
+- R&D facility development (lab permits + technical hiring)
+
+Return JSON array of predictions with SPECIFIC evidence:
 [
   {
     "company_name": "Apple",
     "confidence_score": 85,
     "prediction_type": "manufacturing_facility",
-    "location": "Tustin Legacy",
+    "location": "Costa Mesa Industrial District",
     "timeline_days": 60,
-    "evidence": ["$50M permit filed", "200 manufacturing jobs posted"],
-    "action_recommendation": "Contact Apple facilities team immediately"
+    "evidence": [
+      "Building permit #2024-0156: $15.2M manufacturing facility at 1234 Industrial Blvd",
+      "85 Manufacturing Engineer jobs posted for Costa Mesa location",
+      "62 Production Supervisor positions listed in past 14 days",
+      "Permit applicant: Apple Operations LLC (verified entity)"
+    ],
+    "action_recommendation": "Contact Apple facilities team within 48 hours - high probability of 200,000 sq ft manufacturing expansion"
   }
 ]
 
-Rules:
+QUALITY REQUIREMENTS:
 - Only include predictions with confidence_score >= 70
-- Base confidence on strength of evidence
-- Include specific evidence from the data
-- Provide actionable recommendations
-- Focus on Orange County locations
-- Consider timing correlation between permits and jobs`;
+- Evidence must be specific with numbers, addresses, dates, job titles
+- Base confidence on correlation strength between permits and hiring
+- Include actionable recommendations with specific next steps
+- Focus on Orange County cities: ${this.targetCities.join(', ')}
+- Consider timing correlation (permits filed within 30 days of job postings)
+- Validate company names against target list`;
   }
 
   async callOpenAI(prompt) {
