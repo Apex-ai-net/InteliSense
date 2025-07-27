@@ -135,13 +135,31 @@ class IrvinePermitsScraper {
           const valueMatch = text.match(/\$?([\d,]+(?:\.\d{2})?)/);
           const addressMatch = text.match(/(\d+\s+[A-Za-z\s]+(?:St|Ave|Blvd|Dr|Rd|Way|Ct|Ln))/i);
           
+          // Extract applicant name from permit text
+          let applicant = null;
+          const applicantPatterns = [
+            /applicant[:\s]+([A-Za-z\s,\.]+?)(?:\s|$)/i,
+            /owner[:\s]+([A-Za-z\s,\.]+?)(?:\s|$)/i,
+            /company[:\s]+([A-Za-z\s,\.]+?)(?:\s|$)/i,
+            /contractor[:\s]+([A-Za-z\s,\.]+?)(?:\s|$)/i,
+            /([A-Za-z\s]+(?:LLC|Inc|Corp|Corporation|Company|Co\.|Ltd))/i
+          ];
+          
+          for (const pattern of applicantPatterns) {
+            const match = text.match(pattern);
+            if (match) {
+              applicant = match[1].trim();
+              break;
+            }
+          }
+          
           if (valueMatch || addressMatch) {
             const permit = {
               id: `permit_${Date.now()}_${index}`,
               value: valueMatch ? parseFloat(valueMatch[1].replace(/,/g, '')) : null,
               address: addressMatch ? addressMatch[1].trim() : text.substring(0, 100),
               description: text.substring(0, 200),
-              applicant: null, // Extract if available
+              applicant: applicant || 'Unknown Applicant', // Extract real applicant or mark as unknown
               date_filed: new Date() // Use current date if not available
             };
             

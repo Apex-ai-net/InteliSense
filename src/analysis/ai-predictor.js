@@ -22,6 +22,23 @@ class AIPredictor {
     this.targetCities = [
       'Irvine', 'Newport Beach', 'Costa Mesa', 'Santa Ana', 'Anaheim', 'Orange'
     ];
+    
+    // Corporate entity mappings for permit applicant analysis
+    this.corporateEntityMap = {
+      'Apple': ['Apple Inc', 'Apple Computer', 'Apple Operations', 'Apple Real Estate', 'Apple Facilities'],
+      'Amazon': ['Amazon.com Inc', 'Amazon Web Services', 'Amazon Development', 'Amazon Logistics', 'Amazon Fulfillment'],
+      'Google': ['Google LLC', 'Alphabet Inc', 'Google Real Estate', 'Google Facilities', 'Alphabet Real Estate'],
+      'Meta': ['Meta Platforms', 'Facebook Inc', 'Meta Reality Labs', 'Meta Facilities', 'Facebook Real Estate'],
+      'Tesla': ['Tesla Inc', 'Tesla Motors', 'Tesla Manufacturing', 'Tesla Energy', 'Tesla Facilities'],
+      'Microsoft': ['Microsoft Corporation', 'Microsoft Real Estate', 'Microsoft Development', 'Microsoft Facilities'],
+      'Netflix': ['Netflix Inc', 'Netflix Studios', 'Netflix Real Estate', 'Netflix Facilities'],
+      'SpaceX': ['Space Exploration Technologies', 'SpaceX', 'Space X Corp', 'SpaceX Facilities'],
+      'NVIDIA': ['NVIDIA Corporation', 'NVIDIA Corp', 'NVIDIA Real Estate', 'NVIDIA Facilities'],
+      'Intel': ['Intel Corporation', 'Intel Corp', 'Intel Real Estate', 'Intel Facilities'],
+      'Oracle': ['Oracle Corporation', 'Oracle Corp', 'Oracle Real Estate', 'Oracle America'],
+      'Adobe': ['Adobe Inc', 'Adobe Systems', 'Adobe Real Estate', 'Adobe Facilities'],
+      'Salesforce': ['Salesforce Inc', 'Salesforce.com', 'Salesforce Real Estate', 'Salesforce Facilities']
+    };
   }
 
   async analyzeExpansionSignals() {
@@ -133,21 +150,33 @@ Job Postings: ${JSON.stringify(jobsData, null, 2)}
 Target Companies: ${this.targetCompanies.join(', ')}
 Target Cities: ${this.targetCities.join(', ')}
 
+CORPORATE ENTITY ANALYSIS:
+Carefully analyze permit applicants and correlate them with target companies. Look for:
+- Direct company names: "Apple Inc", "Amazon.com Inc", "Google LLC"
+- Subsidiary entities: "Apple Operations LLC", "Amazon Development Corp", "Google Real Estate"
+- Real estate entities: "Microsoft Real Estate", "Tesla Facilities LLC"
+- Regional entities: "Apple Operations California", "Amazon West Coast"
+
+Corporate Entity Reference:
+${Object.entries(this.corporateEntityMap).map(([company, entities]) => 
+  `${company}: ${entities.join(', ')}`
+).join('\n')}
+
 EVIDENCE REQUIREMENTS - Base predictions on specific, actionable evidence:
-1. BUILDING PERMITS: Specific permit values, addresses, descriptions, applicant names
-2. JOB POSTINGS: Exact job counts, specific titles, locations, hiring patterns
+1. BUILDING PERMITS: Analyze actual permit applicant names and correlate with target companies
+2. JOB POSTINGS: Cross-reference job locations with permit addresses
 3. MASS HIRING: 50+ jobs in same location/department within 30 days
-4. SEC FILINGS: Public disclosures about facilities, acquisitions, expansions
-5. EXECUTIVE MOVEMENTS: Key hires in operations, real estate, facilities management
+4. CORPORATE CORRELATION: Match permit applicants to known corporate entities
+5. LOCATION INTELLIGENCE: Verify addresses and proximity between permits and job postings
 
-ANALYSIS PATTERNS:
-- New facility construction (permits >$1M with commercial/industrial zoning)
-- Mass hiring campaigns (50+ jobs posted in specific Orange County cities)
-- Infrastructure development (utilities, telecommunications, logistics)
-- Manufacturing/warehouse expansion (industrial permits + logistics jobs)
-- R&D facility development (lab permits + technical hiring)
+ANALYSIS INSTRUCTIONS:
+1. For each permit applicant, determine if it matches any target company or subsidiary
+2. If "Tech Company LLC" or similar generic names appear, analyze the address and description to infer the actual company
+3. Cross-reference permit locations with job posting locations
+4. Only make predictions for confirmed corporate matches - never use generic placeholder names
+5. If no clear corporate match exists, do not create a prediction
 
-Return JSON array of predictions with SPECIFIC evidence:
+Return JSON array of predictions with VERIFIED corporate connections:
 [
   {
     "company_name": "Apple",
@@ -156,23 +185,24 @@ Return JSON array of predictions with SPECIFIC evidence:
     "location": "Costa Mesa Industrial District",
     "timeline_days": 60,
     "evidence": [
-      "Building permit #2024-0156: $15.2M manufacturing facility at 1234 Industrial Blvd",
-      "85 Manufacturing Engineer jobs posted for Costa Mesa location",
-      "62 Production Supervisor positions listed in past 14 days",
-      "Permit applicant: Apple Operations LLC (verified entity)"
+      "Building permit #2024-0156: $15.2M manufacturing facility filed by Apple Operations LLC",
+      "Permit address: 1234 Industrial Blvd matches 85 Manufacturing Engineer job postings for Costa Mesa",
+      "62 Production Supervisor positions posted within 14 days of permit filing",
+      "Corporate entity verification: Apple Operations LLC confirmed subsidiary of Apple Inc"
     ],
-    "action_recommendation": "Contact Apple facilities team within 48 hours - high probability of 200,000 sq ft manufacturing expansion"
+    "action_recommendation": "Contact Apple facilities team within 48 hours - verified $15.2M facility expansion"
   }
 ]
 
-QUALITY REQUIREMENTS:
-- Only include predictions with confidence_score >= 70
-- Evidence must be specific with numbers, addresses, dates, job titles
-- Base confidence on correlation strength between permits and hiring
-- Include actionable recommendations with specific next steps
+CRITICAL REQUIREMENTS:
+- Only include predictions with verified corporate entity matches
+- Never use generic names like "Tech Company LLC" - identify the actual company
+- Evidence must include specific permit applicant analysis
+- Cross-reference permit addresses with job posting locations
+- Base confidence on strength of corporate entity correlation
+- Include actionable recommendations with verified company contacts
 - Focus on Orange County cities: ${this.targetCities.join(', ')}
-- Consider timing correlation (permits filed within 30 days of job postings)
-- Validate company names against target list`;
+- Minimum confidence score: 70% (only for verified corporate matches)`;
   }
 
   async callOpenAI(prompt) {
