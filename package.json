@@ -15,7 +15,9 @@
     "setup:production": "node production-setup.js",
     "start:production": "NODE_ENV=production node server.js",
     "scrape": "node -e \"const s = require('./src/scrapers/irvine-permits'); new s().scrape().then(console.log).catch(console.error)\"",
-    "analyze": "node -e \"const a = require('./src/analysis/ai-predictor'); new a().analyzeAndPredict().then(console.log).catch(console.error)\""
+    "analyze": "node -e \"const a = require('./src/analysis/ai-predictor'); new a().analyzeAndPredict().then(console.log).catch(console.error)\"",
+    "monitor": "node src/utils/monitor.js",
+    "start:optimized": "node server-optimized.js"
   },
   "keywords": [
     "real-estate",
@@ -37,7 +39,17 @@
     "nodemailer": "^6.10.1",
     "openai": "^4.104.0",
     "prisma": "^5.22.0",
-    "puppeteer": "^24.15.0"
+    "puppeteer": "^24.15.0",
+    "express-rate-limit": "^7.3.1",
+    "helmet": "^8.0.0",
+    "compression": "^1.7.4",
+    "winston": "^3.15.0",
+    "winston-daily-rotate-file": "^4.7.1",
+    "node-cache": "^5.1.2",
+    "bull": "^4.12.0",
+    "ioredis": "^5.3.2",
+    "express-validator": "^7.0.1",
+    "cors": "^2.8.5"
   },
   "engines": {
     "node": ">=16.0.0"

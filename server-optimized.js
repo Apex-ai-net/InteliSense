@@ -12,7 +12,6 @@ const { body, validationResult } = require('express-validator');
 const logger = require('./src/utils/logger');
 const cacheManager = require('./src/utils/cache');
 const browserPool = require('./src/utils/browser-pool');
-const systemMonitor = require('./src/utils/monitor');
 
 // Import modules
 const Scheduler = require('./src/scheduler');
@@ -602,10 +601,6 @@ async function startServer() {
       logger.warn('Scheduler disabled (demo mode)');
     }
     
-    // Start system monitor
-    systemMonitor.start();
-    logger.info('System monitor started');
-    
     // Start Express server
     app.listen(PORT, () => {
       logger.info(`IntelliSense server running on port ${PORT}`, {
@@ -629,9 +624,6 @@ async function gracefulShutdown(signal) {
   logger.info(`Received ${signal}, shutting down gracefully...`);
   
   try {
-    // Stop system monitor
-    systemMonitor.stop();
-    
     // Close database connection
     await prisma.$disconnect();
     
