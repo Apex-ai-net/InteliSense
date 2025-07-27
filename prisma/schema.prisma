@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Prediction {
+  id                    String   @id @default(cuid())
+  company               String
+  confidence_score      Int
+  prediction_type       String
+  location              String?
+  timeline_days         Int?
+  evidence              String[] // Array of evidence strings
+  action_recommendation String?
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  outcome               String?  // For tracking if prediction was accurate
+  
+  @@map("predictions")
+}
+
+model Permit {
+  id          String   @id @default(cuid())
+  value       Float?
+  address     String
+  description String
+  applicant   String?
+  date_filed  DateTime
+  permit_id   String?  @unique
+  created_at  DateTime @default(now())
+  
+  @@map("permits")
+}
+
+model Job {
+  id           String   @id @default(cuid())
+  company      String
+  title        String
+  location     String
+  description  String?
+  count        Int?     // Number of similar jobs posted
+  date_posted  DateTime
+  indeed_id    String?  @unique
+  created_at   DateTime @default(now())
+  
+  @@map("jobs")
+}
+
+model ScrapingLog {
+  id          String   @id @default(cuid())
+  source      String   // 'permits', 'jobs'
+  status      String   // 'success', 'error'
+  items_found Int      @default(0)
+  error_msg   String?
+  created_at  DateTime @default(now())
+  
+  @@map("scraping_logs")
+} 

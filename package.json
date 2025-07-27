@@ -1,0 +1,45 @@
+{
+  "name": "intellisense",
+  "version": "1.0.0",
+  "description": "IntelliSense Real Estate Intelligence - Orange County business expansion monitoring system",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:generate": "npx prisma generate",
+    "db:push": "npx prisma db push",
+    "db:migrate": "npx prisma migrate dev",
+    "db:studio": "npx prisma studio",
+    "migrate:supabase": "node migrate-to-supabase.js",
+    "setup:production": "node production-setup.js",
+    "start:production": "NODE_ENV=production node server.js",
+    "scrape": "node -e \"const s = require('./src/scrapers/irvine-permits'); new s().scrape().then(console.log).catch(console.error)\"",
+    "analyze": "node -e \"const a = require('./src/analysis/ai-predictor'); new a().analyzeExpansionSignals().then(console.log).catch(console.error)\""
+  },
+  "keywords": [
+    "real-estate",
+    "intelligence",
+    "scraping",
+    "ai",
+    "orange-county",
+    "business-expansion",
+    "permits",
+    "jobs"
+  ],
+  "author": "IntelliSense Team",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.10.1",
+    "openai": "^4.104.0",
+    "prisma": "^5.22.0",
+    "puppeteer": "^24.15.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
