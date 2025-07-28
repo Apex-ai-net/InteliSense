@@ -52,6 +52,7 @@ model Job {
   indeed_id    String?  @unique
   created_at   DateTime @default(now())
   
+  @@unique([company, location], name: "company_location_unique")
   @@map("jobs")
 }
 

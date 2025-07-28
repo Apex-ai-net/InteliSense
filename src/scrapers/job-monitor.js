@@ -14,7 +14,6 @@ class JobMonitor {
       'Anaheim, CA',
       'Orange, CA',
       'Tustin, CA',
-      'Fullerton, CA',
       'Garden Grove, CA',
       'Huntington Beach, CA',
       'Fountain Valley, CA',
@@ -26,9 +25,41 @@ class JobMonitor {
     ];
     this.minJobs = 25; // Lowered for more leads
     
+    // Enhanced browser options for production
+    this.browserOptions = {
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-features=TranslateUI',
+        '--disable-ipc-flooding-protection',
+        '--disable-extensions',
+        '--disable-plugins',
+        '--disable-images',
+        '--disable-javascript', // Disable JS for faster loading
+        '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      ],
+      defaultViewport: {
+        width: 1280,
+        height: 720
+      }
+    };
+    
+    // Increased timeouts for production
+    this.timeout = 60000; // 60 seconds
+    this.maxRetries = 2;
+    
     // Target companies for Voit Commercial Real Estate
     this.targetCompanies = [
-      // Tech Companies
+      // Tech Companies (prioritized - most likely to expand)
       'Apple', 'Amazon', 'Google', 'Meta', 'Microsoft', 'Netflix', 'Adobe', 'Salesforce', 'Oracle',
       'NVIDIA', 'Intel', 'AMD', 'Qualcomm', 'Broadcom', 'Western Digital', 'Seagate',
       // Biotech/Pharma
@@ -38,7 +69,7 @@ class JobMonitor {
       // Automotive
       'Tesla', 'Rivian', 'Lucid Motors', 'Kia', 'Hyundai', 'Toyota', 'Honda',
       // Logistics/Distribution
-      'Amazon', 'UPS', 'FedEx', 'DHL', 'Walmart', 'Target', 'Costco',
+      'UPS', 'FedEx', 'DHL', 'Walmart', 'Target', 'Costco',
       // Healthcare
       'Kaiser Permanente', 'UCI Health', 'Hoag Hospital', 'Providence Health',
       // Financial Services
@@ -56,9 +87,11 @@ class JobMonitor {
   async monitorJobs() {
     console.log('💼 Starting job monitoring...');
     let browser;
+    const allJobs = [];
+    const errors = [];
     
     try {
-      // Log monitoring attempt
+      // Log scraping attempt
       await prisma.scrapingLog.create({
         data: {
           source: 'jobs',
@@ -67,52 +100,63 @@ class JobMonitor {
         }
       });
 
-      browser = await puppeteer.launch({ 
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
+      browser = await puppeteer.launch(this.browserOptions);
       
-      const allJobs = [];
+      // Limit concurrent searches to prevent overwhelming
+      const batchSize = 3;
+      const companies = this.targetCompanies.slice(0, 15); // Limit to top 15 companies
+      const locations = this.locations.slice(0, 5); // Limit to top 5 locations
       
-      // Monitor each target company
-      for (const company of this.targetCompanies) {
-        try {
-          console.log(`🔍 Searching jobs for ${company}...`);
-          
-          // Search across all Orange County cities for this company
-          for (const location of this.locations) {
-            const jobs = await this.searchCompanyJobs(browser, company, location);
-            allJobs.push(...jobs);
-            
-            // Add delay between searches to be respectful
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
-          
-        } catch (error) {
-          console.error(`❌ Error searching jobs for ${company}:`, error);
+      console.log(`🔍 Monitoring ${companies.length} companies across ${locations.length} locations...`);
+      
+      // Process in batches to prevent timeouts
+      for (let i = 0; i < companies.length; i += batchSize) {
+        const batch = companies.slice(i, i + batchSize);
+        
+        await Promise.allSettled(
+          batch.map(async (company) => {
+            for (const location of locations) {
+              try {
+                const jobs = await this.searchCompanyJobsWithRetry(browser, company, location);
+                if (jobs && jobs.length > 0) {
+                  allJobs.push(...jobs);
+                  console.log(`✅ ${company} in ${location}: ${jobs.length} jobs`);
+                }
+              } catch (error) {
+                console.error(`❌ Error searching ${company} in ${location}:`, error.message);
+                errors.push({ company, location, error: error.message });
+              }
+            }
+          })
+        );
+        
+        // Rate limiting between batches
+        if (i + batchSize < companies.length) {
+          await new Promise(resolve => setTimeout(resolve, 5000));
         }
       }
       
-      // Filter jobs with high volume
-      const highVolumeJobs = allJobs.filter(job => job.count >= this.minJobs);
+      console.log(`📊 Total jobs found: ${allJobs.length}`);
       
-      console.log(`💼 Found ${allJobs.length} jobs, ${highVolumeJobs.length} high-volume`);
+      // Filter by minimum job count
+      const validJobs = allJobs.filter(job => job.count >= this.minJobs);
       
-      // Save to database
-      for (const job of allJobs) {
+      // Save valid jobs to database
+      for (const job of validJobs) {
         try {
           await prisma.job.upsert({
-            where: { indeed_id: job.indeed_id || job.id },
+            where: {
+              company_location_unique: {
+                company: job.company,
+                location: job.location
+              }
+            },
             update: {
-              company: job.company,
-              title: job.title,
-              location: job.location,
-              description: job.description,
               count: job.count,
+              description: job.description,
               date_posted: job.date_posted
             },
             create: {
-              indeed_id: job.indeed_id || job.id,
               company: job.company,
               title: job.title,
               location: job.location,
@@ -123,6 +167,7 @@ class JobMonitor {
           });
         } catch (error) {
           console.error('Error saving job:', error);
+          errors.push({ error: `Database save failed: ${error.message}` });
         }
       }
       
@@ -130,15 +175,17 @@ class JobMonitor {
       await prisma.scrapingLog.create({
         data: {
           source: 'jobs',
-          status: 'success',
-          items_found: allJobs.length
+          status: errors.length > 0 ? 'partial_success' : 'success',
+          items_found: validJobs.length,
+          error_msg: errors.length > 0 ? `${errors.length} errors occurred` : null
         }
       });
       
-      return allJobs;
+      console.log(`✅ Job monitoring complete: ${validJobs.length} valid jobs, ${errors.length} errors`);
+      return validJobs;
       
     } catch (error) {
-      console.error('❌ Error monitoring jobs:', error);
+      console.error('❌ Critical error in job monitoring:', error);
       
       // Log error
       await prisma.scrapingLog.create({
@@ -153,7 +200,28 @@ class JobMonitor {
       throw error;
     } finally {
       if (browser) {
-        await browser.close();
+        try {
+          await browser.close();
+        } catch (closeError) {
+          console.error('Error closing browser:', closeError);
+        }
+      }
+    }
+  }
+
+  async searchCompanyJobsWithRetry(browser, company, location) {
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        return await this.searchCompanyJobs(browser, company, location);
+      } catch (error) {
+        console.error(`Attempt ${attempt}/${this.maxRetries} failed for ${company} in ${location}:`, error.message);
+        
+        if (attempt === this.maxRetries) {
+          throw error;
+        }
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
       }
     }
   }
@@ -162,135 +230,153 @@ class JobMonitor {
     const page = await browser.newPage();
     
     try {
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+      // Enhanced page configuration
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+      await page.setExtraHTTPHeaders({
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+      });
       
       // Build search URL
-      const searchUrl = `${this.baseUrl}?q=${encodeURIComponent(company)}&l=${encodeURIComponent(location)}`;
+      const searchUrl = `${this.baseUrl}?q=${encodeURIComponent(company)}&l=${encodeURIComponent(location)}&sort=date`;
       
-      await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+      // Navigate with extended timeout and better error handling
+      await page.goto(searchUrl, { 
+        waitUntil: 'domcontentloaded', // Faster than networkidle2
+        timeout: this.timeout 
+      });
       
-      // Wait for job results to load
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Wait for results with timeout
+      try {
+        await page.waitForSelector('.jobsearch-SerpJobCard, [data-jk], .job_seen_beacon, .result', { timeout: 10000 });
+      } catch (waitError) {
+        // Page might have loaded but no jobs found
+        console.log(`No job results found for ${company} in ${location}`);
+        return [];
+      }
       
-      // Extract job data
+      // Additional wait for dynamic content
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Extract job data with better error handling
       const jobs = await page.evaluate((companyName, jobLocation) => {
-        const jobElements = document.querySelectorAll('[data-jk], .job_seen_beacon, .jobsearch-SerpJobCard');
-        const jobs = [];
-        
-        jobElements.forEach((element, index) => {
-          try {
-            const titleElement = element.querySelector('h2 a span, .jobTitle a span, [data-testid="job-title"]');
-            const companyElement = element.querySelector('.companyName, [data-testid="company-name"]');
-            const locationElement = element.querySelector('.companyLocation, [data-testid="job-location"]');
-            
-            const title = titleElement ? titleElement.textContent.trim() : 'Unknown Title';
-            const company = companyElement ? companyElement.textContent.trim() : companyName;
-            const location = locationElement ? locationElement.textContent.trim() : jobLocation;
-            
-            // Extract job ID
-            const jobId = element.getAttribute('data-jk') || `job_${Date.now()}_${index}`;
-            
+        try {
+          const jobElements = document.querySelectorAll('[data-jk], .job_seen_beacon, .jobsearch-SerpJobCard, .result');
+          const jobs = [];
+          
+          // Count total job results
+          const resultStats = document.querySelector('.pn, #searchCountPages, .np:last-child');
+          let totalJobs = 0;
+          
+          if (resultStats) {
+            const text = resultStats.textContent;
+            const match = text.match(/(\d+)/);
+            if (match) {
+              totalJobs = parseInt(match[1]);
+            }
+          }
+          
+          // If no specific count found, use element count as estimate
+          if (totalJobs === 0) {
+            totalJobs = jobElements.length;
+          }
+          
+          // Only return meaningful job counts
+          if (totalJobs > 0) {
             jobs.push({
-              id: jobId,
-              company: company,
-              title: title,
-              location: location,
-              description: title,
-              count: 1, // Will be aggregated later
+              id: `${companyName}_${jobLocation}_${Date.now()}`,
+              company: companyName,
+              title: `${companyName} Jobs`,
+              location: jobLocation,
+              description: `${totalJobs} job openings at ${companyName} in ${jobLocation}`,
+              count: totalJobs,
               date_posted: new Date()
             });
-            
-          } catch (error) {
-            console.error('Error extracting job data:', error);
           }
-        });
-        
-        return jobs;
+          
+          return jobs;
+        } catch (evalError) {
+          console.error('Error in page evaluation:', evalError);
+          return [];
+        }
       }, company, location);
       
-      // Aggregate similar jobs
-      const aggregatedJobs = this.aggregateJobs(jobs, company);
-      
-      return aggregatedJobs;
+      return jobs || [];
       
     } catch (error) {
-      console.error(`Error searching jobs for ${company}:`, error);
-      
-      // Return mock data for testing
-      return [{
-        id: `test_job_${company}_${Date.now()}`,
-        company: company,
-        title: 'Software Engineer',
-        location: 'Irvine, CA',
-        description: 'Software engineering position',
-        count: 75,
-        date_posted: new Date()
-      }];
-      
+      if (error.name === 'TimeoutError') {
+        throw new Error(`Navigation timeout for ${company} in ${location}`);
+      }
+      throw error;
     } finally {
-      await page.close();
+      try {
+        await page.close();
+      } catch (closeError) {
+        console.error('Error closing page:', closeError);
+      }
     }
   }
 
-  aggregateJobs(jobs, company) {
-    const jobGroups = {};
+  // Enhanced method to check if jobs indicate expansion
+  async analyzeJobTrends(jobs) {
+    const expansionIndicators = [];
     
-    // Group similar jobs by title and location
-    jobs.forEach(job => {
-      const key = `${job.title.toLowerCase()}_${job.location.toLowerCase()}`;
-      
-      if (!jobGroups[key]) {
-        jobGroups[key] = {
-          ...job,
-          count: 0
-        };
+    for (const job of jobs) {
+      const indicators = this.identifyExpansionSignals(job);
+      if (indicators.length > 0) {
+        expansionIndicators.push({
+          company: job.company,
+          location: job.location,
+          jobCount: job.count,
+          indicators: indicators,
+          confidence: this.calculateExpansionConfidence(job, indicators)
+        });
       }
-      
-      jobGroups[key].count++;
-    });
+    }
     
-    // Convert back to array and filter high-volume jobs
-    return Object.values(jobGroups).map(job => ({
-      ...job,
-      indeed_id: job.id,
-      company: company
-    }));
+    return expansionIndicators;
   }
 
-  async getJobTrends() {
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  identifyExpansionSignals(job) {
+    const indicators = [];
+    const description = job.description.toLowerCase();
+    const title = job.title.toLowerCase();
     
-    return await prisma.job.groupBy({
-      by: ['company'],
-      where: {
-        created_at: {
-          gte: thirtyDaysAgo
-        }
-      },
-      _count: {
-        _all: true
-      },
-      _sum: {
-        count: true
-      },
-      orderBy: {
-        _sum: {
-          count: 'desc'
-        }
-      }
-    });
+    // High job count indicates scaling
+    if (job.count >= 50) {
+      indicators.push('high_volume_hiring');
+    }
+    
+    // Facility-related positions
+    if (this.relevantJobCategories.some(category => 
+      description.includes(category) || title.includes(category)
+    )) {
+      indicators.push('facility_related_roles');
+    }
+    
+    // Leadership positions suggest new operations
+    if (description.includes('director') || description.includes('manager') || 
+        description.includes('head of') || description.includes('vp')) {
+      indicators.push('leadership_hiring');
+    }
+    
+    return indicators;
   }
 
-  async getHighVolumeJobs() {
-    return await prisma.job.findMany({
-      where: {
-        count: {
-          gte: this.minJobs
-        }
-      },
-      orderBy: { created_at: 'desc' },
-      take: 100
-    });
+  calculateExpansionConfidence(job, indicators) {
+    let confidence = 0;
+    
+    // Base confidence from job count
+    if (job.count >= 100) confidence += 30;
+    else if (job.count >= 50) confidence += 20;
+    else if (job.count >= 25) confidence += 10;
+    
+    // Indicator bonuses
+    if (indicators.includes('high_volume_hiring')) confidence += 25;
+    if (indicators.includes('facility_related_roles')) confidence += 20;
+    if (indicators.includes('leadership_hiring')) confidence += 15;
+    
+    return Math.min(confidence, 85); // Cap at 85%
   }
 }
 

@@ -24,13 +24,13 @@ class Scheduler {
   start() {
     console.log('⏰ Starting IntelliSense scheduler...');
     
-    // Every 2 hours: Scrape permits and jobs from ALL cities
-    cron.schedule('0 */2 * * *', async () => {
+    // Every 4 hours: Scrape permits and jobs from ALL cities (reduced for stability)
+    cron.schedule('0 */4 * * *', async () => {
       await this.runMultiCityDataCollection(); // UPDATED
     });
     
-    // Every 4 hours: Run AI analysis
-    cron.schedule('0 */4 * * *', async () => {
+    // Every 8 hours: Run AI analysis (reduced for stability)
+    cron.schedule('0 */8 * * *', async () => {
       await this.runAnalysis();
     });
     
@@ -45,8 +45,8 @@ class Scheduler {
     });
     
     console.log('✅ Scheduler started with the following schedule:');
-    console.log('  📋 Multi-City Permits & Jobs: Every 2 hours');
-    console.log('  🧠 AI Analysis: Every 4 hours');
+    console.log('  📋 Multi-City Permits & Jobs: Every 4 hours');
+    console.log('  🧠 AI Analysis: Every 8 hours');
     console.log('  📊 Daily Report: 9:00 AM daily');
     console.log('  💓 Health Check: Every 30 minutes');
     console.log('  🏙️  Cities: Irvine, Newport Beach, Tustin, Anaheim');
