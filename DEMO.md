@@ -56,7 +56,7 @@ Create `.env` file:
 OPENAI_API_KEY=sk-your-key-here
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=your-app-password
-ALERT_EMAIL=rosterkamp@voitco.com
+ALERT_EMAIL=admin@thefiredev.com
 DATABASE_URL=postgresql://localhost:5432/intellisense
 ```
 

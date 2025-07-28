@@ -16,7 +16,7 @@ if (!fs.existsSync(envPath)) {
   console.log('OPENAI_API_KEY=your-openai-api-key-here');
   console.log('EMAIL_USER=your-gmail@gmail.com');
   console.log('EMAIL_PASS=your-gmail-app-password');
-  console.log('ALERT_EMAIL=rosterkamp@voitco.com');
+  console.log('ALERT_EMAIL=admin@thefiredev.com');
   console.log('DATABASE_URL=postgresql://localhost:5432/intellisense');
   console.log('PORT=3000');
   console.log('NODE_ENV=development');
