@@ -2,11 +2,18 @@ const winston = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
 const path = require('path');
 
-// Create logs directory if it doesn't exist
+// Railway deployment compatibility - use environment variable to control file logging
+const isRailwayDeployment = process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production';
+const enableFileLogging = process.env.ENABLE_FILE_LOGGING === 'true' && !isRailwayDeployment;
+
+// Create logs directory only if file logging is enabled
 const fs = require('fs');
-const logsDir = path.join(__dirname, '../../logs');
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
+let logsDir;
+if (enableFileLogging) {
+  logsDir = path.join(__dirname, '../../logs');
+  if (!fs.existsSync(logsDir)) {
+    fs.mkdirSync(logsDir, { recursive: true });
+  }
 }
 
 // Custom format for better readability
@@ -28,20 +35,20 @@ const customFormat = winston.format.combine(
   })
 );
 
-// Create logger instance
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: customFormat,
-  defaultMeta: { service: 'intellisense' },
-  transports: [
-    // Console transport for development
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      )
-    }),
-    
+// Create transports array
+const transports = [
+  // Console transport - always available
+  new winston.transports.Console({
+    format: winston.format.combine(
+      winston.format.colorize(),
+      winston.format.simple()
+    )
+  })
+];
+
+// Add file transports only if file logging is enabled (not in Railway)
+if (enableFileLogging && logsDir) {
+  transports.push(
     // Rotating file transport for all logs
     new DailyRotateFile({
       filename: path.join(logsDir, 'application-%DATE%.log'),
@@ -70,7 +77,15 @@ const logger = winston.createLogger({
       maxFiles: '7d',
       level: 'info'
     })
-  ]
+  );
+}
+
+// Create logger instance
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: customFormat,
+  defaultMeta: { service: 'intellisense' },
+  transports
 });
 
 // Add performance monitoring

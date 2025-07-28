@@ -11,7 +11,7 @@ class AIPredictor {
     });
     
     this.emailSender = new EmailSender();
-    this.confidenceThreshold = 75; // Lowered for more leads
+    this.confidenceThreshold = 90; // Raised to 90% for high-quality alerts only
     
     // Target companies for Voit Commercial Real Estate
     this.targetCompanies = [
@@ -163,8 +163,17 @@ class AIPredictor {
       
       // Send consolidated alert if high-confidence predictions found
       if (highConfidencePredictions.length > 0) {
-        console.log(`🚨 Sending consolidated alert for ${highConfidencePredictions.length} high-confidence predictions`);
-        await this.emailSender.sendConsolidatedExpansionAlert(highConfidencePredictions);
+        console.log(`🚨 HIGH-CONFIDENCE ALERT TRIGGERED: ${highConfidencePredictions.length} predictions ≥90% confidence`);
+        console.log('Alert details:', highConfidencePredictions.map(p => `${p.company}: ${p.confidence_score}%`));
+        
+        try {
+          await this.emailSender.sendConsolidatedExpansionAlert(highConfidencePredictions);
+          console.log('✅ Alert email sent successfully');
+        } catch (emailError) {
+          console.error('❌ Failed to send alert email:', emailError.message);
+        }
+      } else {
+        console.log('📊 No high-confidence predictions (≥90%) generated - no alerts sent');
       }
       
       console.log(`✅ Analysis complete: ${savedPredictions.length} predictions generated, ${highConfidencePredictions.length} high-confidence`);
@@ -298,16 +307,8 @@ ACTION: [Voit-specific recommendation for lead generation]`;
     } catch (error) {
       console.error('❌ Error calling OpenAI:', error);
       
-      // Return mock prediction for testing if API fails
-      return [{
-        company_name: 'Test Company',
-        confidence_score: 85,
-        prediction_type: 'facility_expansion',
-        location: 'Irvine, CA',
-        timeline_days: 45,
-        evidence: ['High-value permit detected', 'Increased hiring activity'],
-        action_recommendation: 'Monitor for official announcements'
-      }];
+      // Return empty array - no fake data
+      return [];
     }
   }
 

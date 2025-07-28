@@ -3,17 +3,20 @@ const logger = require('./logger');
 
 class BrowserPool {
   constructor(options = {}) {
-    this.maxBrowsers = options.maxBrowsers || 3;
-    this.maxConcurrency = options.maxConcurrency || 2;
+    // Railway-optimized configuration - reduce resource usage
+    const isRailwayDeployment = process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production';
+    
+    this.maxBrowsers = isRailwayDeployment ? 1 : (options.maxBrowsers || 2);
+    this.maxConcurrency = isRailwayDeployment ? 1 : (options.maxConcurrency || 2);
     this.browserTimeout = options.browserTimeout || 30000;
-    this.idleTimeout = options.idleTimeout || 300000; // 5 minutes
+    this.idleTimeout = isRailwayDeployment ? 180000 : (options.idleTimeout || 300000); // 3 minutes in Railway
     
     this.browsers = [];
     this.activeBrowsers = 0;
     this.queue = [];
     this.isShuttingDown = false;
     
-    // Browser configuration
+    // Railway-optimized browser configuration
     this.browserOptions = {
       headless: true,
       args: [
@@ -28,11 +31,17 @@ class BrowserPool {
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding',
         '--disable-features=TranslateUI',
-        '--disable-ipc-flooding-protection'
+        '--disable-ipc-flooding-protection',
+        '--disable-features=VizDisplayCompositor',
+        '--disable-extensions',
+        '--disable-plugins',
+        '--disable-default-apps',
+        '--disable-sync',
+        '--memory-pressure-off'
       ],
       defaultViewport: {
-        width: 1920,
-        height: 1080
+        width: 1280,
+        height: 720
       }
     };
   }

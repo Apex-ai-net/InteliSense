@@ -36,7 +36,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -68,7 +68,7 @@
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -104,6 +104,14 @@
             animation: pulse 2s infinite;
         }
 
+        .status-indicator.warning {
+            background: #fbbf24;
+        }
+
+        .status-indicator.error {
+            background: #ef4444;
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -111,7 +119,7 @@
 
         .status-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 15px;
         }
 
@@ -121,6 +129,11 @@
             background: rgba(255, 255, 255, 0.05);
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .status-item:hover {
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .status-value {
@@ -139,7 +152,7 @@
         }
 
         .endpoints-list li {
-            padding: 10px 0;
+            padding: 12px 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
             justify-content: space-between;
@@ -171,6 +184,59 @@
             margin-left: 10px;
         }
 
+        .company-item {
+            text-align: center;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .company-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.02);
+        }
+
+        .company-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6b7280;
+        }
+
+        .company-indicator.active {
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        .trigger-button {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .trigger-button:hover {
+            background: rgba(59, 130, 246, 0.4);
+            transform: scale(1.05);
+        }
+
+        .trigger-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .refresh-button {
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -195,10 +261,43 @@
             opacity: 0.7;
         }
 
+        .activity-indicator {
+            font-size: 0.7em;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .metric-item {
+            text-align: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .metric-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #60a5fa;
+        }
+
+        .metric-label {
+            font-size: 0.7em;
+            opacity: 0.8;
+            margin-top: 3px;
+        }
+
         @media (max-width: 768px) {
             .header h1 { font-size: 2em; }
             .dashboard-grid { grid-template-columns: 1fr; }
             .container { padding: 10px; }
+            .status-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
         }
     </style>
 </head>
@@ -214,9 +313,10 @@
         </div>
 
         <div class="dashboard-grid">
+            <!-- System Status -->
             <div class="glass-card">
                 <div class="card-title">
-                    <span class="status-indicator"></span>
+                    <span class="status-indicator" id="system-indicator"></span>
                     System Status
                 </div>
                 <div class="status-grid">
@@ -229,19 +329,48 @@
                         <div class="status-label">Memory (MB)</div>
                     </div>
                     <div class="status-item">
-                        <div class="status-value">🟢</div>
+                        <div class="status-value" id="openai-status">🟢</div>
                         <div class="status-label">OpenAI API</div>
                     </div>
                     <div class="status-item">
-                        <div class="status-value">⚠️</div>
-                        <div class="status-label">Database</div>
+                        <div class="status-value" id="database-status">--</div>
+                        <div class="status-label" id="database-label">Database</div>
                     </div>
                 </div>
             </div>
 
+            <!-- Real-time Metrics -->
             <div class="glass-card">
                 <div class="card-title">
-                    📊 API Endpoints
+                    📊 Live Metrics
+                </div>
+                <div class="metrics-row">
+                    <div class="metric-item">
+                        <div class="metric-value" id="total-permits">--</div>
+                        <div class="metric-label">Total Permits</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value" id="facility-jobs">--</div>
+                        <div class="metric-label">Facility Jobs</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value" id="predictions">--</div>
+                        <div class="metric-label">Predictions</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value" id="high-confidence">--</div>
+                        <div class="metric-label">High Confidence</div>
+                    </div>
+                </div>
+                <div class="activity-indicator" id="last-activity">
+                    Last scrape: Loading...
+                </div>
+            </div>
+
+            <!-- API Endpoints -->
+            <div class="glass-card">
+                <div class="card-title">
+                    📡 API Endpoints
                 </div>
                 <ul class="endpoints-list">
                     <li>
@@ -263,6 +392,7 @@
                 </ul>
             </div>
 
+            <!-- Manual Triggers -->
             <div class="glass-card">
                 <div class="card-title">
                     🔧 Manual Triggers
@@ -270,40 +400,48 @@
                 <ul class="endpoints-list">
                     <li>
                         <span>/manual/scrape-permits</span>
-                        <span class="endpoint-method method-post">POST</span>
+                        <button class="trigger-button" onclick="triggerAction('/manual/scrape-permits')">RUN</button>
                     </li>
                     <li>
                         <span>/manual/scrape-multi-city-permits</span>
-                        <span class="endpoint-method method-post">POST</span>
+                        <button class="trigger-button" onclick="triggerAction('/manual/scrape-multi-city-permits')">RUN</button>
                     </li>
                     <li>
                         <span>/manual/monitor-jobs</span>
-                        <span class="endpoint-method method-post">POST</span>
+                        <button class="trigger-button" onclick="triggerAction('/manual/monitor-jobs')">RUN</button>
                     </li>
                     <li>
                         <span>/manual/analyze</span>
-                        <span class="endpoint-method method-post">POST</span>
+                        <button class="trigger-button" onclick="triggerAction('/manual/analyze')">RUN</button>
                     </li>
                     <li>
                         <span>/manual/test-email</span>
-                        <span class="endpoint-method method-post">POST</span>
+                        <button class="trigger-button" onclick="triggerAction('/manual/test-email')">RUN</button>
+                    </li>
+                    <li>
+                        <span>/manual/test-alert</span>
+                        <button class="trigger-button" onclick="triggerAction('/manual/test-alert')">TEST 90%</button>
                     </li>
                 </ul>
             </div>
 
+            <!-- Target Companies -->
             <div class="glass-card">
                 <div class="card-title">
                     🎯 Target Companies
                 </div>
-                <div class="status-grid">
-                    <div class="status-item">Apple</div>
-                    <div class="status-item">Amazon</div>
-                    <div class="status-item">Google</div>
-                    <div class="status-item">Meta</div>
-                    <div class="status-item">Tesla</div>
-                    <div class="status-item">SpaceX</div>
-                    <div class="status-item">Microsoft</div>
-                    <div class="status-item">Netflix</div>
+                <div class="status-grid" id="companies-grid">
+                    <!-- Companies will be loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="glass-card">
+                <div class="card-title">
+                    🔔 Recent Activity
+                </div>
+                <div id="recent-activity">
+                    <div class="activity-indicator">Loading recent activity...</div>
                 </div>
             </div>
         </div>
@@ -319,46 +457,209 @@
     </div>
 
     <script>
+        const targetCompanies = [
+            'Apple', 'Amazon', 'Google', 'Meta', 'Tesla', 'SpaceX', 
+            'Microsoft', 'Netflix', 'NVIDIA', 'Intel', 'Boeing', 'Edwards Lifesciences'
+        ];
+
+        let isRefreshing = false;
+
         // Load system data on page load
         window.onload = function() {
+            loadTargetCompanies();
             refreshData();
         };
 
+        function loadTargetCompanies() {
+            const grid = document.getElementById('companies-grid');
+            grid.innerHTML = '';
+            
+            targetCompanies.forEach(company => {
+                const div = document.createElement('div');
+                div.className = 'company-item';
+                div.innerHTML = `
+                    <div class="company-indicator" id="${company.toLowerCase()}-indicator"></div>
+                    <div>${company}</div>
+                    <div class="activity-indicator" id="${company.toLowerCase()}-activity">No recent activity</div>
+                `;
+                div.onclick = () => showCompanyDetails(company);
+                grid.appendChild(div);
+            });
+        }
+
         async function refreshData() {
+            if (isRefreshing) return;
+            isRefreshing = true;
+            
             try {
-                const response = await fetch('/health');
-                const data = await response.json();
+                // Update system indicator
+                document.getElementById('system-indicator').className = 'status-indicator';
                 
-                // Update uptime
-                document.getElementById('uptime').textContent = 
-                    Math.round(data.uptime / 3600 * 100) / 100;
+                const [healthData, statsData, jobsData, permitsData, predictionsData] = await Promise.all([
+                    fetch('/health').then(r => r.json()),
+                    fetch('/stats').then(r => r.json()),
+                    fetch('/jobs').then(r => r.json()),
+                    fetch('/permits').then(r => r.json()),
+                    fetch('/predictions').then(r => r.json())
+                ]);
                 
-                // Update memory usage
-                const memoryMB = Math.round(data.memory.heapUsed / 1024 / 1024);
-                document.getElementById('memory').textContent = memoryMB;
-                
-                // Update mode badge
-                const modeBadge = document.getElementById('mode-badge');
-                if (data.mode && data.mode.includes('production')) {
-                    modeBadge.textContent = '🚀 PRODUCTION MODE';
-                    modeBadge.style.background = 'rgba(34, 197, 94, 0.3)';
-                    modeBadge.style.color = '#22c55e';
-                } else if (data.mode && data.mode.includes('supabase')) {
-                    modeBadge.textContent = '🗄️ SUPABASE MODE';
-                    modeBadge.style.background = 'rgba(59, 130, 246, 0.3)';
-                    modeBadge.style.color = '#3b82f6';
-                } else {
-                    modeBadge.textContent = '⚠️ DEMO MODE';
-                    modeBadge.style.background = 'rgba(255, 193, 7, 0.3)';
-                    modeBadge.style.color = '#ffc107';
-                }
+                updateSystemStatus(healthData);
+                updateMetrics(healthData, statsData, jobsData, permitsData, predictionsData);
+                updateCompanyActivity(jobsData, permitsData);
+                updateRecentActivity(healthData, jobsData, permitsData, predictionsData);
                 
             } catch (error) {
-                console.error('Error fetching health data:', error);
-                document.getElementById('uptime').textContent = 'Error';
-                document.getElementById('memory').textContent = 'Error';
-                document.getElementById('mode-badge').textContent = '❌ ERROR';
+                console.error('Error fetching data:', error);
+                document.getElementById('system-indicator').className = 'status-indicator error';
+                showError('Failed to refresh data');
+            } finally {
+                isRefreshing = false;
             }
+        }
+
+        function updateSystemStatus(data) {
+            // Update uptime
+            document.getElementById('uptime').textContent = 
+                Math.round(data.uptime / 3600 * 100) / 100;
+            
+            // Update memory usage
+            const memoryMB = Math.round(data.memory.heapUsed / 1024 / 1024);
+            document.getElementById('memory').textContent = memoryMB;
+            
+            // Update database status
+            const dbStatus = document.getElementById('database-status');
+            const dbLabel = document.getElementById('database-label');
+            
+            if (data.database && data.database.status === 'connected') {
+                dbStatus.textContent = '🟢';
+                dbLabel.textContent = `Database (${data.database.latency})`;
+            } else {
+                dbStatus.textContent = '🔴';
+                dbLabel.textContent = 'Database (Error)';
+            }
+            
+            // Update mode badge
+            const modeBadge = document.getElementById('mode-badge');
+            if (data.mode && data.mode.includes('production')) {
+                modeBadge.textContent = '🚀 PRODUCTION MODE';
+                modeBadge.style.background = 'rgba(34, 197, 94, 0.3)';
+                modeBadge.style.color = '#22c55e';
+            } else if (data.mode && data.mode.includes('supabase')) {
+                modeBadge.textContent = '🗄️ SUPABASE MODE';
+                modeBadge.style.background = 'rgba(59, 130, 246, 0.3)';
+                modeBadge.style.color = '#3b82f6';
+            } else {
+                modeBadge.textContent = '⚠️ DEMO MODE';
+                modeBadge.style.background = 'rgba(255, 193, 7, 0.3)';
+                modeBadge.style.color = '#ffc107';
+            }
+        }
+
+        function updateMetrics(healthData, statsData, jobsData, permitsData, predictionsData) {
+            document.getElementById('total-permits').textContent = permitsData.count || 0;
+            document.getElementById('facility-jobs').textContent = jobsData.count || 0;
+            document.getElementById('predictions').textContent = predictionsData.count || 0;
+            
+            // Calculate high confidence predictions
+            const highConfidence = predictionsData.predictions ? 
+                predictionsData.predictions.filter(p => p.confidence_score >= 90).length : 0;
+            document.getElementById('high-confidence').textContent = highConfidence;
+
+            // Update last activity
+            const lastScrapes = healthData.stats?.lastScrapes || {};
+            const activities = [];
+            if (lastScrapes.permits) activities.push(`Permits: ${new Date(lastScrapes.permits).toLocaleTimeString()}`);
+            if (lastScrapes.jobs) activities.push(`Jobs: ${new Date(lastScrapes.jobs).toLocaleTimeString()}`);
+            
+            document.getElementById('last-activity').textContent = 
+                activities.length > 0 ? activities.join(' • ') : 'No recent activity';
+        }
+
+        function updateCompanyActivity(jobsData, permitsData) {
+            const jobs = jobsData.jobs || [];
+            const permits = permitsData.permits || [];
+            
+            targetCompanies.forEach(company => {
+                const companyJobs = jobs.filter(job => 
+                    job.company.toLowerCase().includes(company.toLowerCase())
+                );
+                const companyPermits = permits.filter(permit => 
+                    permit.applicant && permit.applicant.toLowerCase().includes(company.toLowerCase())
+                );
+                
+                const indicator = document.getElementById(`${company.toLowerCase()}-indicator`);
+                const activity = document.getElementById(`${company.toLowerCase()}-activity`);
+                
+                if (companyJobs.length > 0 || companyPermits.length > 0) {
+                    indicator.className = 'company-indicator active';
+                    activity.textContent = `${companyJobs.length} jobs, ${companyPermits.length} permits`;
+                } else {
+                    indicator.className = 'company-indicator';
+                    activity.textContent = 'No recent activity';
+                }
+            });
+        }
+
+        function updateRecentActivity(healthData, jobsData, permitsData, predictionsData) {
+            const activityDiv = document.getElementById('recent-activity');
+            const activities = [];
+            
+            if (jobsData.count > 0) {
+                activities.push(`🏢 Found ${jobsData.count} facility-related jobs`);
+            }
+            if (permitsData.count > 0) {
+                activities.push(`📋 Scraped ${permitsData.count} building permits`);
+            }
+            if (predictionsData.count > 0) {
+                activities.push(`🤖 Generated ${predictionsData.count} expansion predictions`);
+            }
+            
+            if (activities.length === 0) {
+                activityDiv.innerHTML = '<div class="activity-indicator">No recent activity</div>';
+            } else {
+                activityDiv.innerHTML = activities.map(activity => 
+                    `<div class="activity-indicator">${activity}</div>`
+                ).join('');
+            }
+        }
+
+        async function triggerAction(endpoint) {
+            const button = event.target;
+            const originalText = button.textContent;
+            
+            button.disabled = true;
+            button.textContent = 'RUNNING...';
+            
+            try {
+                const response = await fetch(endpoint, { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.success) {
+                    button.textContent = '✅ DONE';
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.disabled = false;
+                        refreshData(); // Refresh data after successful operation
+                    }, 2000);
+                } else {
+                    throw new Error(result.error || 'Operation failed');
+                }
+            } catch (error) {
+                console.error('Error triggering action:', error);
+                button.textContent = '❌ ERROR';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.disabled = false;
+                }, 2000);
+            }
+        }
+
+        function showCompanyDetails(company) {
+            alert(`${company} Details:\n\nClick "Refresh System Data" to see latest activity for ${company}`);
+        }
+
+        function showError(message) {
+            console.error(message);
         }
 
         // Auto-refresh every 30 seconds

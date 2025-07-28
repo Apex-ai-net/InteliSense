@@ -143,3 +143,31 @@ The system sends professional consolidated email alerts with:
 
 **Voit Commercial Real Estate Intelligence System**  
 *Orange County's Premier Commercial Real Estate Partner* 
+
+## 🚨 Alert System Configuration
+
+### **90% Confidence Threshold**
+The system is configured to send email alerts **only for predictions with 90% confidence or higher**. This ensures Voit receives only the highest-quality expansion leads.
+
+### **Required Environment Variables (Railway)**
+For email alerts to work in production, set these variables in Railway:
+
+```bash
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password  # Gmail App Password (not your regular password)
+ALERT_EMAIL=voit-team@voitco.com
+```
+
+### **Alert Testing**
+- **Manual Test**: Use the dashboard "TEST 90%" button or `/manual/test-alert` endpoint
+- **Email Test**: Use `/manual/test-email` to verify email configuration
+- **Confidence Test**: Send `{"confidence": 85}` to verify filtering works
+
+### **Alert Triggers**
+Alerts are automatically sent when:
+1. **AI Analysis** generates predictions ≥90% confidence
+2. **Verified corporate entities** are detected in permits/jobs
+3. **High-value projects** ($1M+ office, $2M+ industrial) are identified
+4. **Target companies** show expansion signals
+
+--- 

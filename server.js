@@ -29,6 +29,33 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
+// Environment variable validation for Railway deployment
+function validateEnvironment() {
+  const requiredVars = ['DATABASE_URL'];
+  const optionalVars = ['OPENAI_API_KEY', 'EMAIL_USER', 'EMAIL_PASS', 'EMAIL_HOST'];
+  
+  const missing = requiredVars.filter(varName => !process.env[varName]);
+  const missingOptional = optionalVars.filter(varName => !process.env[varName]);
+  
+  if (missing.length > 0) {
+    logger.warn('Missing required environment variables', { missing });
+  }
+  
+  if (missingOptional.length > 0) {
+    logger.info('Missing optional environment variables (some features may be limited)', { missingOptional });
+  }
+  
+  logger.info('Environment validation completed', {
+    requiredVars: requiredVars.length - missing.length + '/' + requiredVars.length,
+    optionalVars: optionalVars.length - missingOptional.length + '/' + optionalVars.length,
+    nodeEnv: NODE_ENV,
+    port: PORT
+  });
+}
+
+// Run environment validation
+validateEnvironment();
+
 // Enhanced Prisma client with connection pooling
 const prisma = new PrismaClient({
   datasources: {
@@ -45,7 +72,8 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'sha256-OvN3623GGQ6fnSaXRrGFw9VkVU9umBX4qSaUMnwe4ZM='"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-hashes'"],
+      scriptSrcAttr: ["'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
     },
   },
@@ -118,12 +146,26 @@ async function initializeServices() {
     aiPredictor = new AIPredictor();
     emailSender = new EmailSender();
     
-    // Initialize browser pool
-    await browserPool.initialize();
+    // Initialize browser pool with error resilience for Railway
+    try {
+      await browserPool.initialize();
+      logger.info('Browser pool initialized successfully');
+    } catch (browserError) {
+      logger.warn('Browser pool initialization failed, continuing without browser functionality', { 
+        error: browserError.message 
+      });
+      // Continue without browser pool - some features may be limited
+    }
     
     logger.info('All services initialized successfully');
   } catch (error) {
     logger.error('Failed to initialize services', { error: error.message });
+    // In Railway, we want to continue running even if some services fail
+    const isRailwayDeployment = process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production';
+    if (isRailwayDeployment) {
+      logger.warn('Continuing with limited functionality due to service initialization failure');
+      return; // Don't throw error in Railway
+    }
     throw error;
   }
 }
@@ -500,6 +542,60 @@ app.post('/manual/test-email',
   }
 );
 
+app.post('/manual/test-alert',
+  [body('confidence').optional().isNumeric()],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      logger.info('Testing high-confidence alert system', { service: 'intellisense' });
+      const startTime = Date.now();
+      
+      // Create a test prediction with 90%+ confidence
+      const testConfidence = req.body.confidence || 95;
+      const testPrediction = {
+        company: 'Test Alert Company',
+        confidence_score: testConfidence,
+        prediction_type: 'commercial_facility',
+        location: 'Irvine, CA',
+        timeline_days: 30,
+        evidence: ['High-confidence test prediction', 'Alert system verification'],
+        action_recommendation: 'This is a test of the 90%+ confidence alert system'
+      };
+      
+      // Test the alert threshold and email system
+      if (testConfidence >= 90) {
+        console.log(`🚨 TEST ALERT: ${testConfidence}% confidence (≥90% threshold)`);
+        await emailSender.sendConsolidatedExpansionAlert([testPrediction]);
+        
+        const duration = Date.now() - startTime;
+        
+        res.json({
+          success: true,
+          message: `Test alert sent successfully for ${testConfidence}% confidence`,
+          threshold: '90%',
+          triggered: testConfidence >= 90,
+          duration: `${duration}ms`
+        });
+      } else {
+        res.json({
+          success: true,
+          message: `Test confidence ${testConfidence}% below 90% threshold - no alert sent`,
+          threshold: '90%',
+          triggered: false
+        });
+      }
+      
+    } catch (error) {
+      logger.error('Test alert failed', { error: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
 // Multi-city permits scraping endpoint
 app.post('/manual/scrape-multi-city-permits', 
   [
@@ -658,8 +754,9 @@ async function getSystemStats() {
 async function startServer() {
   try {
     const isSupabase = process.env.DATABASE_URL?.includes('supabase.co');
+    const isRailwayDeployment = process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production';
     
-    // Test database connection
+    // Test database connection with Railway resilience
     if (isSupabase) {
       try {
         await prisma.$connect();
@@ -667,40 +764,75 @@ async function startServer() {
         logger.info('Supabase database connected');
       } catch (dbError) {
         logger.warn('Supabase connection failed, running in demo mode', { error: dbError.message });
+        if (isRailwayDeployment) {
+          logger.info('Railway deployment - continuing without database functionality');
+        }
       }
     } else {
       logger.warn('Local/demo mode - database features limited');
     }
     
-    // Initialize services
-    await initializeServices();
-    
-    // Start the scheduler (only for Supabase)
-    if (isSupabase) {
-      scheduler.start();
-      logger.info('Scheduler enabled (Supabase mode)');
-    } else {
-      logger.warn('Scheduler disabled (demo mode)');
+    // Initialize services with Railway error handling
+    try {
+      await initializeServices();
+    } catch (servicesError) {
+      if (isRailwayDeployment) {
+        logger.warn('Services initialization failed in Railway, continuing with basic functionality', { 
+          error: servicesError.message 
+        });
+      } else {
+        throw servicesError;
+      }
     }
     
-    // Start system monitor
-    systemMonitor.start();
-    logger.info('System monitor started');
+    // Start the scheduler (only for Supabase and successful initialization)
+    if (isSupabase && scheduler) {
+      try {
+        scheduler.start();
+        logger.info('Scheduler enabled (Supabase mode)');
+      } catch (schedulerError) {
+        logger.warn('Scheduler failed to start', { error: schedulerError.message });
+      }
+    } else {
+      logger.warn('Scheduler disabled (demo mode or failed initialization)');
+    }
+    
+    // Start system monitor with error handling
+    try {
+      systemMonitor.start();
+      logger.info('System monitor started');
+    } catch (monitorError) {
+      logger.warn('System monitor failed to start', { error: monitorError.message });
+    }
     
     // Start Express server
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       logger.info(`IntelliSense server running on port ${PORT}`, {
         port: PORT,
         environment: NODE_ENV,
         database: isSupabase ? 'supabase' : 'demo',
+        deployment: isRailwayDeployment ? 'railway' : 'local',
         healthCheck: `http://localhost:${PORT}/health`,
         dashboard: `http://localhost:${PORT}`,
         api: `http://localhost:${PORT}/api`
       });
     });
+
+    // Handle server errors
+    server.on('error', (error) => {
+      logger.error('Server error', { error: error.message });
+      if (error.code === 'EADDRINUSE') {
+        logger.error(`Port ${PORT} is already in use`);
+        process.exit(1);
+      }
+    });
     
   } catch (error) {
     logger.error('Failed to start server', { error: error.message });
+    const isRailwayDeployment = process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production';
+    if (isRailwayDeployment) {
+      logger.error('Critical failure in Railway deployment, exiting');
+    }
     process.exit(1);
   }
 }
