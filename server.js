@@ -150,6 +150,7 @@ app.get('/api', (req, res) => {
       cache: '/cache',
       manual: {
         scrapePermits: '/manual/scrape-permits',
+        scrapeMultiCityPermits: '/manual/scrape-multi-city-permits',
         monitorJobs: '/manual/monitor-jobs',
         analyze: '/manual/analyze',
         testEmail: '/manual/test-email'
@@ -495,6 +496,86 @@ app.post('/manual/test-email',
     } catch (error) {
       logger.email('test', 'failed', req.body.recipient, error);
       res.status(500).json({ error: error.message });
+    }
+  }
+);
+
+// Multi-city permits scraping endpoint
+app.post('/manual/scrape-multi-city-permits', 
+  [
+    body('cities').optional().isArray().withMessage('Cities must be an array'),
+    body('minValue').optional().isNumeric().withMessage('Min value must be numeric')
+  ],
+  async (req, res) => {
+    const startTime = Date.now();
+    
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array()
+        });
+      }
+
+      logger.info('Manual multi-city permits scraping triggered', { service: 'intellisense' });
+      
+      // Initialize multi-city scraper
+      const MultiCityPermitsScraper = require('./src/scrapers/multi-city-permits');
+      const scraper = new MultiCityPermitsScraper();
+      
+      // Optionally filter cities if specified
+      if (req.body.cities) {
+        const requestedCities = req.body.cities;
+        Object.keys(scraper.cities).forEach(cityKey => {
+          if (!requestedCities.includes(cityKey)) {
+            scraper.cities[cityKey].enabled = false;
+          }
+        });
+      }
+      
+      // Optionally adjust minimum value
+      if (req.body.minValue) {
+        scraper.minValue = parseInt(req.body.minValue);
+      }
+      
+      const permits = await scraper.scrapeAllCities();
+      
+      const duration = Date.now() - startTime;
+      
+      // Group results by city
+      const citySummary = {};
+      permits.forEach(permit => {
+        const city = permit.city || 'Unknown';
+        if (!citySummary[city]) {
+          citySummary[city] = { count: 0, totalValue: 0 };
+        }
+        citySummary[city].count++;
+        citySummary[city].totalValue += permit.value || 0;
+      });
+      
+      res.json({
+        success: true,
+        message: 'Multi-city permits scraping completed successfully',
+        duration: `${duration}ms`,
+        results: {
+          totalPermits: permits.length,
+          citySummary: citySummary,
+          permits: permits.slice(0, 10) // Show first 10 permits
+        }
+      });
+
+    } catch (error) {
+      logger.error('Manual multi-city permits scraping failed:', error);
+      const duration = Date.now() - startTime;
+      
+      res.status(500).json({
+        success: false,
+        message: 'Multi-city permits scraping failed',
+        error: error.message,
+        duration: `${duration}ms`
+      });
     }
   }
 );

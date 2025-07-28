@@ -34,6 +34,8 @@ model Permit {
   applicant   String?
   date_filed  DateTime
   permit_id   String?  @unique
+  city        String?  // NEW: City where permit was filed
+  source_url  String?  // NEW: URL where permit data was scraped from
   created_at  DateTime @default(now())
   
   @@map("permits")
