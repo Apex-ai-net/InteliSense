@@ -1,0 +1,1 @@
+# Temporary file to remove .dockerignore and force Nixpacks usage
