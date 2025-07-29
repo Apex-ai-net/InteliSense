@@ -19,7 +19,12 @@
     "scrape": "node -e \"const s = require('./src/scrapers/irvine-permits'); new s().scrape().then(console.log).catch(console.error)\"",
     "analyze": "node -e \"const a = require('./src/analysis/ai-predictor'); new a().analyzeAndPredict().then(console.log).catch(console.error)\"",
     "monitor": "node src/utils/monitor.js",
-    "start:optimized": "node server-optimized.js"
+    "start:optimized": "node server-optimized.js",
+    "health": "node scripts/health-check.js",
+    "health:quick": "node -e \"require('./scripts/health-check.js').checkCritical()\"",
+    "verify": "npm run health && echo '✅ System verification complete'",
+    "postinstall": "npm run db:generate",
+    "prestart": "npm run health:quick"
   },
   "keywords": [
     "real-estate",
