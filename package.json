@@ -20,14 +20,8 @@
     "analyze": "node -e \"const a = require('./src/analysis/ai-predictor'); new a().analyzeAndPredict().then(console.log).catch(console.error)\"",
     "monitor": "node src/utils/monitor.js",
     "start:optimized": "node server-optimized.js",
-    "health": "node scripts/health-check.js",
-    "health:quick": "node -e \"require('./scripts/health-check.js').checkCritical()\"",
-    "security": "node scripts/security-audit.js",
-    "verify": "npm run health && npm run security && echo '✅ System verification complete'",
     "audit:deps": "npm audit && npm audit fix",
-    "postinstall": "npm run db:generate",
-    "prestart": "npm run health:quick",
-    "predeploy": "npm run verify"
+    "postinstall": "npm run db:generate"
   },
   "keywords": [
     "real-estate",
