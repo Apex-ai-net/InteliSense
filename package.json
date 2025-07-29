@@ -22,9 +22,12 @@
     "start:optimized": "node server-optimized.js",
     "health": "node scripts/health-check.js",
     "health:quick": "node -e \"require('./scripts/health-check.js').checkCritical()\"",
-    "verify": "npm run health && echo '✅ System verification complete'",
+    "security": "node scripts/security-audit.js",
+    "verify": "npm run health && npm run security && echo '✅ System verification complete'",
+    "audit:deps": "npm audit && npm audit fix",
     "postinstall": "npm run db:generate",
-    "prestart": "npm run health:quick"
+    "prestart": "npm run health:quick",
+    "predeploy": "npm run verify"
   },
   "keywords": [
     "real-estate",
