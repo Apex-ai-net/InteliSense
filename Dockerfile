@@ -42,6 +42,7 @@ RUN apt-get update && apt-get install -y \
     lsb-release \
     wget \
     xdg-utils \
+    curl \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
@@ -52,25 +53,28 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
 # Create app directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better Docker layer caching
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install ALL dependencies first (including devDependencies for build)
+RUN npm ci
 
 # Copy application code
 COPY . .
 
-# Generate Prisma client
+# Generate Prisma client (requires dev dependencies)
 RUN npx prisma generate
+
+# Remove dev dependencies for production
+RUN npm prune --omit=dev
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs \
-    && adduser --system --uid 1001 nextjs
+    && adduser --system --uid 1001 intellisense
 
 # Change ownership of the app directory
-RUN chown -R nextjs:nodejs /app
-USER nextjs
+RUN chown -R intellisense:nodejs /app
+USER intellisense
 
 # Expose port
 EXPOSE 3000
@@ -84,4 +88,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000/health || exit 1
 
 # Start the application
-CMD ["npm", "start"] 
+CMD ["npm", "start"]
