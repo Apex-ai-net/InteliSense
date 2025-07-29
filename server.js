@@ -29,6 +29,13 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
+// Mid-Market Configuration Constants
+const CONFIDENCE_THRESHOLD = parseInt(process.env.ALERT_CONFIDENCE_THRESHOLD) || 85;
+const MIN_OFFICE_VALUE = parseInt(process.env.MIN_OFFICE_PERMIT_VALUE) || 300000; // $300K
+const MIN_INDUSTRIAL_VALUE = parseInt(process.env.MIN_INDUSTRIAL_PERMIT_VALUE) || 500000; // $500K
+const MIN_JOB_POSTINGS = parseInt(process.env.MIN_JOB_POSTINGS) || 10;
+const TARGET_TIMELINE_DAYS = parseInt(process.env.TARGET_TIMELINE_DAYS) || 45; // 15-60 day range
+
 // Environment variable validation for Railway deployment
 function validateEnvironment() {
   const requiredVars = ['DATABASE_URL'];
@@ -49,7 +56,14 @@ function validateEnvironment() {
     requiredVars: requiredVars.length - missing.length + '/' + requiredVars.length,
     optionalVars: optionalVars.length - missingOptional.length + '/' + optionalVars.length,
     nodeEnv: NODE_ENV,
-    port: PORT
+    port: PORT,
+    midMarketConfig: {
+      confidenceThreshold: CONFIDENCE_THRESHOLD + '%',
+      minOfficeValue: '$' + (MIN_OFFICE_VALUE / 1000) + 'K',
+      minIndustrialValue: '$' + (MIN_INDUSTRIAL_VALUE / 1000) + 'K',
+      minJobPostings: MIN_JOB_POSTINGS,
+      targetTimelineDays: TARGET_TIMELINE_DAYS
+    }
   });
 }
 
@@ -180,9 +194,18 @@ app.get('/api', (req, res) => {
   res.json({
     name: 'IntelliSense Real Estate Intelligence',
     version: '1.0.0',
-    description: 'Orange County business expansion monitoring system',
+    description: 'High-growth mid-market company expansion detection for Orange County',
+    strategy: 'mid-market-focus',
+    targetCompanies: '$10M-$500M revenue, high-growth, new to Orange County',
     status: 'operational',
     environment: NODE_ENV,
+    configuration: {
+      confidenceThreshold: CONFIDENCE_THRESHOLD + '%',
+      minOfficeValue: '$' + (MIN_OFFICE_VALUE / 1000) + 'K',
+      minIndustrialValue: '$' + (MIN_INDUSTRIAL_VALUE / 1000) + 'K',
+      minJobPostings: MIN_JOB_POSTINGS,
+      targetTimelineDays: TARGET_TIMELINE_DAYS
+    },
     endpoints: {
       health: '/health',
       predictions: '/predictions',
@@ -195,7 +218,8 @@ app.get('/api', (req, res) => {
         scrapeMultiCityPermits: '/manual/scrape-multi-city-permits',
         monitorJobs: '/manual/monitor-jobs',
         analyze: '/manual/analyze',
-        testEmail: '/manual/test-email'
+        testEmail: '/manual/test-email',
+        testAlert: '/manual/test-alert'
       }
     }
   });
@@ -236,6 +260,14 @@ app.get('/health', async (req, res) => {
       uptime: process.uptime(),
       memory: process.memoryUsage(),
       environment: NODE_ENV,
+      strategy: 'mid-market-focus',
+      configuration: {
+        confidenceThreshold: CONFIDENCE_THRESHOLD + '%',
+        minOfficeValue: '$' + (MIN_OFFICE_VALUE / 1000) + 'K',
+        minIndustrialValue: '$' + (MIN_INDUSTRIAL_VALUE / 1000) + 'K',
+        minJobPostings: MIN_JOB_POSTINGS,
+        targetTimelineDays: TARGET_TIMELINE_DAYS
+      },
       database: {
         status: dbStatus,
         latency: `${dbLatency}ms`,
@@ -274,7 +306,15 @@ app.get('/stats', async (req, res) => {
       cache: cacheStats,
       browserPool: browserStats,
       memory: process.memoryUsage(),
-      uptime: process.uptime()
+      uptime: process.uptime(),
+      configuration: {
+        strategy: 'mid-market-focus',
+        confidenceThreshold: CONFIDENCE_THRESHOLD + '%',
+        minOfficeValue: '$' + (MIN_OFFICE_VALUE / 1000) + 'K',
+        minIndustrialValue: '$' + (MIN_INDUSTRIAL_VALUE / 1000) + 'K',
+        minJobPostings: MIN_JOB_POSTINGS,
+        targetTimelineDays: TARGET_TIMELINE_DAYS
+      }
     });
   } catch (error) {
     logger.error('Failed to get stats', { error: error.message });
@@ -409,7 +449,7 @@ app.post('/manual/scrape-permits',
       
       res.json({
         success: true,
-        message: 'Permits scrape completed',
+        message: 'Mid-market permits scrape completed',
         count: permits.length,
         duration: `${duration}ms`,
         permits
@@ -444,7 +484,7 @@ app.post('/manual/monitor-jobs',
       
       res.json({
         success: true,
-        message: 'Job monitoring completed',
+        message: 'High-growth company job monitoring completed',
         count: jobs.length,
         duration: `${duration}ms`,
         jobs
@@ -479,7 +519,7 @@ app.post('/manual/analyze',
       
       res.json({
         success: true,
-        message: 'Analysis completed',
+        message: 'Mid-market expansion analysis completed',
         count: predictions.length,
         duration: `${duration}ms`,
         predictions
@@ -507,14 +547,14 @@ app.post('/manual/test-email',
       const connectionTest = await emailSender.testConnection();
       
       if (connectionTest) {
-        // Send test prediction alert
+        // Send test prediction alert for mid-market company
         const testPrediction = {
-          company_name: 'Test Company',
-          confidence_score: 95,
+          company_name: 'GrowthTech Solutions',
+          confidence_score: CONFIDENCE_THRESHOLD + 5,
           location: 'Irvine, CA',
-          timeline_days: 30,
-          evidence: ['Test permit filed', 'Test job postings detected'],
-          action_recommendation: 'This is a test alert - IntelliSense is working!'
+          timeline_days: TARGET_TIMELINE_DAYS,
+          evidence: ['$400K office permit filed', '15 job postings detected for Orange County'],
+          action_recommendation: 'This is a test alert - IntelliSense mid-market detection is working!'
         };
         
         await emailSender.sendExpansionAlert(testPrediction);
@@ -551,24 +591,28 @@ app.post('/manual/test-alert',
         return res.status(400).json({ errors: errors.array() });
       }
 
-      logger.info('Testing high-confidence alert system', { service: 'intellisense' });
+      logger.info('Testing mid-market confidence alert system', { service: 'intellisense' });
       const startTime = Date.now();
       
-      // Create a test prediction with 90%+ confidence
-      const testConfidence = req.body.confidence || 95;
+      // Create a test prediction with mid-market threshold
+      const testConfidence = req.body.confidence || CONFIDENCE_THRESHOLD + 5;
       const testPrediction = {
-        company: 'Test Alert Company',
+        company: 'FastGrow Manufacturing',
         confidence_score: testConfidence,
-        prediction_type: 'commercial_facility',
-        location: 'Irvine, CA',
-        timeline_days: 30,
-        evidence: ['High-confidence test prediction', 'Alert system verification'],
-        action_recommendation: 'This is a test of the 90%+ confidence alert system'
+        prediction_type: 'mid_market_expansion',
+        location: 'Orange County, CA',
+        timeline_days: TARGET_TIMELINE_DAYS,
+        evidence: [
+          `$${MIN_OFFICE_VALUE / 1000}K office permit approved`,
+          `${MIN_JOB_POSTINGS}+ job postings for OC expansion`,
+          'Series B funding completed'
+        ],
+        action_recommendation: `Test of ${CONFIDENCE_THRESHOLD}%+ confidence alert system for mid-market companies`
       };
       
       // Test the alert threshold and email system
-      if (testConfidence >= 90) {
-        console.log(`🚨 TEST ALERT: ${testConfidence}% confidence (≥90% threshold)`);
+      if (testConfidence >= CONFIDENCE_THRESHOLD) {
+        console.log(`🚨 MID-MARKET ALERT: ${testConfidence}% confidence (≥${CONFIDENCE_THRESHOLD}% threshold)`);
         await emailSender.sendConsolidatedExpansionAlert([testPrediction]);
         
         const duration = Date.now() - startTime;
@@ -576,15 +620,17 @@ app.post('/manual/test-alert',
         res.json({
           success: true,
           message: `Test alert sent successfully for ${testConfidence}% confidence`,
-          threshold: '90%',
-          triggered: testConfidence >= 90,
+          threshold: CONFIDENCE_THRESHOLD + '%',
+          strategy: 'mid-market-focus',
+          triggered: testConfidence >= CONFIDENCE_THRESHOLD,
           duration: `${duration}ms`
         });
       } else {
         res.json({
           success: true,
-          message: `Test confidence ${testConfidence}% below 90% threshold - no alert sent`,
-          threshold: '90%',
+          message: `Test confidence ${testConfidence}% below ${CONFIDENCE_THRESHOLD}% threshold - no alert sent`,
+          threshold: CONFIDENCE_THRESHOLD + '%',
+          strategy: 'mid-market-focus',
           triggered: false
         });
       }
@@ -615,11 +661,15 @@ app.post('/manual/scrape-multi-city-permits',
         });
       }
 
-      logger.info('Manual multi-city permits scraping triggered', { service: 'intellisense' });
+      logger.info('Manual mid-market multi-city permits scraping triggered', { service: 'intellisense' });
       
       // Initialize multi-city scraper
       const MultiCityPermitsScraper = require('./src/scrapers/multi-city-permits');
       const scraper = new MultiCityPermitsScraper();
+      
+      // Set mid-market focused minimum values
+      scraper.minOfficeValue = MIN_OFFICE_VALUE;
+      scraper.minIndustrialValue = MIN_INDUSTRIAL_VALUE;
       
       // Optionally filter cities if specified
       if (req.body.cities) {
@@ -653,7 +703,12 @@ app.post('/manual/scrape-multi-city-permits',
       
       res.json({
         success: true,
-        message: 'Multi-city permits scraping completed successfully',
+        message: 'Mid-market multi-city permits scraping completed successfully',
+        strategy: 'mid-market-focus',
+        thresholds: {
+          office: '$' + (MIN_OFFICE_VALUE / 1000) + 'K',
+          industrial: '$' + (MIN_INDUSTRIAL_VALUE / 1000) + 'K'
+        },
         duration: `${duration}ms`,
         results: {
           totalPermits: permits.length,
@@ -807,11 +862,19 @@ async function startServer() {
     
     // Start Express server
     const server = app.listen(PORT, () => {
-      logger.info(`IntelliSense server running on port ${PORT}`, {
+      logger.info(`IntelliSense Mid-Market Intelligence server running on port ${PORT}`, {
         port: PORT,
         environment: NODE_ENV,
+        strategy: 'mid-market-focus',
         database: isSupabase ? 'supabase' : 'demo',
         deployment: isRailwayDeployment ? 'railway' : 'local',
+        configuration: {
+          confidenceThreshold: CONFIDENCE_THRESHOLD + '%',
+          minOfficeValue: '$' + (MIN_OFFICE_VALUE / 1000) + 'K',
+          minIndustrialValue: '$' + (MIN_INDUSTRIAL_VALUE / 1000) + 'K',
+          minJobPostings: MIN_JOB_POSTINGS,
+          targetTimelineDays: TARGET_TIMELINE_DAYS
+        },
         healthCheck: `http://localhost:${PORT}/health`,
         dashboard: `http://localhost:${PORT}`,
         api: `http://localhost:${PORT}/api`
