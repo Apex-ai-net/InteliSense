@@ -1,10 +1,10 @@
-# 🏢 Voit Commercial Real Estate Intelligence System
+# 🏢 IntelliSense Real Estate Intelligence Platform
 
 **Orange County's Premier Commercial Real Estate Lead Generation Platform**
 
 ## 🎯 Overview
 
-Voit Commercial Real Estate Intelligence System is a sophisticated AI-powered platform designed to identify high-value commercial real estate opportunities in Orange County, California. The system monitors building permits, job postings, and corporate expansion signals to generate actionable leads for Voit's commercial real estate team.
+IntelliSense Real Estate Intelligence Platform is a sophisticated AI-powered system designed to identify high-value commercial real estate opportunities in Orange County, California. The system monitors building permits, job postings, and corporate expansion signals to generate actionable leads for commercial real estate teams.
 
 ## 🚀 Key Features
 
@@ -45,7 +45,7 @@ Voit Commercial Real Estate Intelligence System is a sophisticated AI-powered pl
 
 ### **Alert System**
 - **Consolidated Reports**: Professional email summaries with all leads
-- **Actionable Recommendations**: Voit-specific guidance for each opportunity
+- **Actionable Recommendations**: Industry-specific guidance for each opportunity
 - **Priority Scoring**: High-confidence leads flagged for immediate action
 - **Market Context**: Orange County commercial real estate insights
 
@@ -76,7 +76,7 @@ Voit Commercial Real Estate Intelligence System is a sophisticated AI-powered pl
 
 ## 📈 Business Impact
 
-### **For Voit Commercial Real Estate**
+### **For Commercial Real Estate Teams**
 - **Proactive Lead Generation**: Identify opportunities before competitors
 - **Verified Corporate Entities**: Only real companies, no false positives
 - **High-Value Projects**: Focus on significant commercial real estate deals
@@ -101,7 +101,7 @@ Voit Commercial Real Estate Intelligence System is a sophisticated AI-powered pl
 ### **Installation**
 ```bash
 git clone <repository>
-cd intellisense-master
+cd intellisense
 npm install
 ```
 
@@ -128,7 +128,7 @@ The system sends professional consolidated email alerts with:
 - **Lead Summary**: Total opportunities and confidence scores
 - **Detailed Analysis**: Company, property type, location, timeline
 - **Evidence**: Specific permit details and job posting data
-- **Action Items**: Voit-specific recommendations for each lead
+- **Action Items**: Customized recommendations for each lead
 - **Market Context**: Orange County commercial real estate insights
 
 ## 🎯 Success Metrics
@@ -141,13 +141,13 @@ The system sends professional consolidated email alerts with:
 
 ---
 
-**Voit Commercial Real Estate Intelligence System**  
-*Orange County's Premier Commercial Real Estate Partner* 
+**IntelliSense Real Estate Intelligence Platform**  
+*Orange County's Premier Commercial Real Estate Intelligence Solution* 
 
 ## 🚨 Alert System Configuration
 
 ### **90% Confidence Threshold**
-The system is configured to send email alerts **only for predictions with 90% confidence or higher**. This ensures Voit receives only the highest-quality expansion leads.
+The system is configured to send email alerts **only for predictions with 90% confidence or higher**. This ensures clients receive only the highest-quality expansion leads.
 
 ### **Required Environment Variables (Railway)**
 For email alerts to work in production, set these variables in Railway:
@@ -155,7 +155,7 @@ For email alerts to work in production, set these variables in Railway:
 ```bash
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=your-app-password  # Gmail App Password (not your regular password)
-ALERT_EMAIL=voit-team@voitco.com
+ALERT_EMAIL=your-team@yourcompany.com
 ```
 
 ### **Alert Testing**
@@ -169,5 +169,3 @@ Alerts are automatically sent when:
 2. **Verified corporate entities** are detected in permits/jobs
 3. **High-value projects** ($1M+ office, $2M+ industrial) are identified
 4. **Target companies** show expansion signals
-
---- 
