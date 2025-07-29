@@ -1,17 +1,17 @@
 # 🏢 IntelliSense Real Estate Intelligence Platform
 
-**Orange County's Premier Commercial Real Estate Lead Generation Platform**
+**AI-Powered Commercial Real Estate Lead Generation Platform**
 
 ## 🎯 Overview
 
-IntelliSense Real Estate Intelligence Platform is a sophisticated AI-powered system designed to identify high-value commercial real estate opportunities in Orange County, California. The system monitors building permits, job postings, and corporate expansion signals to generate actionable leads for commercial real estate teams.
+IntelliSense Real Estate Intelligence Platform is a sophisticated AI-powered system designed to identify high-value commercial real estate opportunities across major metropolitan markets. The system monitors building permits, job postings, and corporate expansion signals to generate actionable leads for commercial real estate teams.
 
 ## 🚀 Key Features
 
 ### **Professional Lead Generation**
 - **Verified Corporate Entities**: Identifies real companies, not generic placeholders
 - **High-Value Permits**: Monitors $1M+ office, $2M+ industrial projects
-- **Multi-City Coverage**: All Orange County cities (Irvine, Newport Beach, Costa Mesa, etc.)
+- **Multi-City Coverage**: Major metropolitan areas and business districts
 - **Property Type Classification**: Office, Industrial, Warehouse, Data Center, Research Lab, Medical Office
 - **Consolidated Alerts**: Professional email reports with actionable recommendations
 
@@ -24,10 +24,11 @@ IntelliSense Real Estate Intelligence Platform is a sophisticated AI-powered sys
 - **Healthcare**: Kaiser Permanente, UCI Health, Hoag Hospital
 - **Financial Services**: Pacific Life, First American, Experian, CoreLogic
 
-### **Orange County Coverage**
-- Irvine, Newport Beach, Costa Mesa, Santa Ana, Anaheim, Orange
-- Tustin, Fullerton, Garden Grove, Huntington Beach, Fountain Valley
-- Westminster, Cypress, Los Alamitos, Seal Beach, La Habra
+### **Market Coverage**
+- Major metropolitan business districts and commercial centers
+- Tech corridors, biotech hubs, and industrial zones
+- Financial districts and mixed-use developments
+- Suburban office parks and research campuses
 
 ## 🏗️ System Architecture
 
@@ -47,7 +48,7 @@ IntelliSense Real Estate Intelligence Platform is a sophisticated AI-powered sys
 - **Consolidated Reports**: Professional email summaries with all leads
 - **Actionable Recommendations**: Industry-specific guidance for each opportunity
 - **Priority Scoring**: High-confidence leads flagged for immediate action
-- **Market Context**: Orange County commercial real estate insights
+- **Market Context**: Regional commercial real estate insights
 
 ## 📊 Lead Generation Criteria
 
@@ -56,7 +57,7 @@ IntelliSense Real Estate Intelligence Platform is a sophisticated AI-powered sys
 - **Industrial Projects**: $2M+ permit value
 - **Job Postings**: 25+ positions in same location/company
 - **Timeline**: 30-90 days for immediate opportunities
-- **Location**: Orange County cities with strong commercial real estate market
+- **Location**: Major metropolitan areas with strong commercial real estate markets
 
 ### **Evidence Requirements**
 1. **Permits**: Specific corporate entity, property type, value, location
@@ -80,13 +81,13 @@ IntelliSense Real Estate Intelligence Platform is a sophisticated AI-powered sys
 - **Proactive Lead Generation**: Identify opportunities before competitors
 - **Verified Corporate Entities**: Only real companies, no false positives
 - **High-Value Projects**: Focus on significant commercial real estate deals
-- **Orange County Expertise**: Leverage local market knowledge
+- **Local Market Expertise**: Leverage regional market knowledge
 - **Professional Reporting**: Executive-ready intelligence summaries
 
 ### **Lead Quality Metrics**
 - **Corporate Verification**: 100% real company identification
 - **High-Value Focus**: $1M+ office, $2M+ industrial minimums
-- **Orange County Coverage**: All major commercial real estate markets
+- **Market Coverage**: All major commercial real estate markets
 - **Immediate Timeline**: 30-90 day windows for proactive outreach
 - **Property Type Specificity**: Office, Industrial, Warehouse, Data Center, Research Lab, Medical Office
 
@@ -129,12 +130,12 @@ The system sends professional consolidated email alerts with:
 - **Detailed Analysis**: Company, property type, location, timeline
 - **Evidence**: Specific permit details and job posting data
 - **Action Items**: Customized recommendations for each lead
-- **Market Context**: Orange County commercial real estate insights
+- **Market Context**: Regional commercial real estate insights
 
 ## 🎯 Success Metrics
 
 - **Lead Quality**: 100% verified corporate entities
-- **Market Coverage**: All Orange County commercial real estate markets
+- **Market Coverage**: All major commercial real estate markets
 - **Project Value**: $1M+ office, $2M+ industrial minimums
 - **Timeline**: 30-90 day windows for immediate opportunities
 - **Professional Standards**: Executive-ready intelligence reports
@@ -142,7 +143,7 @@ The system sends professional consolidated email alerts with:
 ---
 
 **IntelliSense Real Estate Intelligence Platform**  
-*Orange County's Premier Commercial Real Estate Intelligence Solution* 
+*AI-Powered Commercial Real Estate Intelligence Solution* 
 
 ## 🚨 Alert System Configuration
 
